@@ -1,0 +1,7 @@
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/whitedns.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/edit_cache.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/rebuild_cache.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/list_install_components.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/install.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/install/local.dir
+/Users/sbruicesingh/WhiteDNS/build/CMakeFiles/install/strip.dir
