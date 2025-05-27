@@ -74,6 +74,8 @@
 #include <sstream>
 #include <json/json.h>
 
+#include "PortScanner.h"
+
 extern "C" {
   #include <arpa/nameser.h>
 }
@@ -181,12 +183,131 @@ void verbose_log(const Options& opt, const string& msg) {
     }
 }
 
+#include <netinet/tcp.h>
+#include <sys/select.h>
+#include <fcntl.h>
+
+bool perform_tcp_query(const string& domain, const string& dns_server, int qtype, unsigned char* answer, int& out_len, int buf_size, const Options& opt) {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        if (opt.verbose) perror("socket");
+        return false;
+    }
+
+    sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    if (inet_pton(AF_INET, dns_server.c_str(), &sa.sin_addr) != 1) {
+        close(sockfd);
+        return false;
+    }
+    sa.sin_port = htons(53);
+
+    // Set non-blocking connect with timeout
+    fcntl(sockfd, F_SETFL, O_NONBLOCK);
+    int res = connect(sockfd, (sockaddr*)&sa, sizeof(sa));
+    if (res < 0) {
+        if (errno != EINPROGRESS) {
+            if (opt.verbose) perror("connect");
+            close(sockfd);
+            return false;
+        }
+    }
+
+    fd_set wfds;
+    FD_ZERO(&wfds);
+    FD_SET(sockfd, &wfds);
+    timeval tv;
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+    res = select(sockfd + 1, NULL, &wfds, NULL, &tv);
+    if (res <= 0) {
+        if (opt.verbose) perror("select");
+        close(sockfd);
+        return false;
+    }
+
+    int so_error = 0;
+    socklen_t len_so_error = sizeof(so_error);
+    getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len_so_error);
+    if (so_error != 0) {
+        if (opt.verbose) {
+            cerr << "connect error: " << strerror(so_error) << "\n";
+        }
+        close(sockfd);
+        return false;
+    }
+
+    // Build DNS query packet using res_mkquery
+    unsigned char query_buf[BUF_SIZE];
+    int query_len = res_mkquery(ns_o_query, domain.c_str(), ns_c_in, qtype, NULL, 0, NULL, query_buf, BUF_SIZE);
+    if (query_len < 0) {
+        if (opt.verbose) cerr << "res_mkquery failed\n";
+        close(sockfd);
+        return false;
+    }
+
+    // Send length prefix for TCP
+    unsigned char len_buf[2];
+    len_buf[0] = (query_len >> 8) & 0xFF;
+    len_buf[1] = query_len & 0xFF;
+    if (send(sockfd, len_buf, 2, 0) != 2) {
+        if (opt.verbose) perror("send length");
+        close(sockfd);
+        return false;
+    }
+    if (send(sockfd, query_buf, query_len, 0) != query_len) {
+        if (opt.verbose) perror("send query");
+        close(sockfd);
+        return false;
+    }
+
+    // Receive length prefix
+    unsigned char resp_len_buf[2];
+    int received = recv(sockfd, resp_len_buf, 2, MSG_WAITALL);
+    if (received != 2) {
+        if (opt.verbose) perror("recv length");
+        close(sockfd);
+        return false;
+    }
+    int resp_len = (resp_len_buf[0] << 8) | resp_len_buf[1];
+    if (resp_len > buf_size) {
+        if (opt.verbose) cerr << "Response too large for buffer\n";
+        close(sockfd);
+        return false;
+    }
+
+    // Receive DNS response
+    int total_received = 0;
+    while (total_received < resp_len) {
+        int r = recv(sockfd, answer + total_received, resp_len - total_received, 0);
+        if (r <= 0) {
+            if (opt.verbose) perror("recv response");
+            close(sockfd);
+            return false;
+        }
+        total_received += r;
+    }
+    out_len = total_received;
+    close(sockfd);
+    return true;
+}
+
 bool perform_res_query(const Options& opt, const string& domain, const string& dns_server, int qtype, unsigned char* answer, int& out_len) {
-    if (!dns_server.empty()) {
+    const int MAX_RETRIES = 3;
+    const int BUF_SIZE = 4096; // increased buffer size
+    static unsigned char buffer[BUF_SIZE];
+
+    string server_to_use = dns_server;
+    if (server_to_use.empty()) {
+        server_to_use = "8.8.8.8"; // default to Google DNS if none specified
+    }
+
+    if (!server_to_use.empty()) {
         sockaddr_in sa;
         memset(&sa, 0, sizeof(sa));
         sa.sin_family = AF_INET;
-        if (inet_pton(AF_INET, dns_server.c_str(), &sa.sin_addr) != 1) {
+        if (inet_pton(AF_INET, server_to_use.c_str(), &sa.sin_addr) != 1) {
             return false;
         }
         sa.sin_port = htons(53);
@@ -194,11 +315,45 @@ bool perform_res_query(const Options& opt, const string& domain, const string& d
         _res.nscount = 1;
     }
 
-    out_len = res_query(domain.c_str(), ns_c_in, qtype, answer, NS_PACKETSZ);
-    if (out_len < 0) {
+    int len = -1;
+    bool tcp_fallback = false;
+    for (int attempt = 0; attempt < MAX_RETRIES; ++attempt) {
+        len = res_query(domain.c_str(), ns_c_in, qtype, buffer, BUF_SIZE);
+        if (len >= 0) {
+            // Check if truncated
+            ns_msg handle;
+            if (ns_initparse(buffer, len, &handle) == 0) {
+                if (ns_msg_getflag(handle, ns_f_tc)) {
+                    tcp_fallback = true;
+                    break;
+                }
+            }
+            break;
+        }
         if (opt.verbose) perror("res_query");
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (tcp_fallback) {
+        if (opt.verbose) {
+            LOCK_OUTPUT;
+            cout << "[DEBUG] UDP response truncated, retrying over TCP\n";
+        }
+        if (!perform_tcp_query(domain, server_to_use, qtype, buffer, len, BUF_SIZE, opt)) {
+            if (opt.verbose) {
+                LOCK_OUTPUT;
+                cout << "[DEBUG] TCP query failed\n";
+            }
+            return false;
+        }
+    }
+
+    if (len < 0) {
         return false;
     }
+
+    memcpy(answer, buffer, len);
+    out_len = len;
     return true;
 }
 
@@ -268,8 +423,13 @@ string get_record_string(const ns_msg& handle, const ns_rr& rr) {
 // Query DNS for given types on domain from single server, collect results
 bool query_dns(const Options& opt, const string& domain, const string& server, QueryResult& result) {
     result.server = server;
+    bool is_subdomain = domain.find('.') != string::npos && domain.find('.') != domain.rfind('.');
     for (int qtype : opt.query_types) {
-        unsigned char answer[NS_PACKETSZ];
+        // Skip NS queries for subdomains to avoid query failures
+        if (qtype == ns_t_ns && is_subdomain) {
+            continue;
+        }
+        unsigned char answer[4096];
         int len = 0;
         if (!perform_res_query(opt, domain, server, qtype, answer, len)) {
             result.error = true;
@@ -278,6 +438,10 @@ bool query_dns(const Options& opt, const string& domain, const string& server, Q
         }
         ns_msg handle;
         if (ns_initparse(answer, len, &handle) < 0) {
+            if (opt.verbose) {
+                LOCK_OUTPUT;
+                cout << "[DEBUG] Failed parsing DNS response for type " << ns_type_to_string(qtype) << " on domain " << domain << "\n";
+            }
             result.error = true;
             result.error_msg = "Failed parsing DNS response";
             return false;
@@ -479,10 +643,85 @@ void fast_flux_detection(const Options& opt, const string& domain, const vector<
 // DNS zone transfer check (AXFR)
 void check_zone_transfer(const Options& opt, const string& server, const string& domain) {
     verbose_log(opt, "Checking DNS zone transfer on " + server);
-    // Simple AXFR test - try to connect on TCP port 53 and request AXFR (not trivial without external libs)
-    // We will show placeholder message because full AXFR requires TCP DNS implementation beyond res_query
+    // Attempt AXFR zone transfer using TCP connection
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        LOCK_OUTPUT;
+        cout << "Zone transfer test: socket creation failed\n";
+        return;
+    }
+
+    sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    if (inet_pton(AF_INET, server.c_str(), &sa.sin_addr) != 1) {
+        LOCK_OUTPUT;
+        cout << "Zone transfer test: invalid server address\n";
+        close(sockfd);
+        return;
+    }
+    sa.sin_port = htons(53);
+
+    if (connect(sockfd, (sockaddr*)&sa, sizeof(sa)) < 0) {
+        LOCK_OUTPUT;
+        cout << "Zone transfer test: TCP connect failed\n";
+        close(sockfd);
+        return;
+    }
+
+    const int BUF_SIZE = 4096;
+    unsigned char query_buf[BUF_SIZE];
+    int query_len = res_mkquery(ns_o_query, domain.c_str(), ns_c_in, ns_t_axfr, NULL, 0, NULL, query_buf, BUF_SIZE);
+    if (query_len < 0) {
+        LOCK_OUTPUT;
+        cout << "Zone transfer test: res_mkquery failed\n";
+        close(sockfd);
+        return;
+    }
+
+    // Send length prefix for TCP
+    unsigned char len_buf[2];
+    len_buf[0] = (query_len >> 8) & 0xFF;
+    len_buf[1] = query_len & 0xFF;
+    if (send(sockfd, len_buf, 2, 0) != 2 || send(sockfd, query_buf, query_len, 0) != query_len) {
+        LOCK_OUTPUT;
+        cout << "Zone transfer test: send failed\n";
+        close(sockfd);
+        return;
+    }
+
     LOCK_OUTPUT;
-    cout << "Zone transfer (AXFR) test on " << server << " for " << domain << ": Not implemented (requires full TCP DNS client)\n";
+    cout << "Zone transfer (AXFR) records from " << server << " for " << domain << ":\n";
+
+    // Receive and print records until connection closes or error
+    unsigned char resp_len_buf[2];
+    while (true) {
+        int received = recv(sockfd, resp_len_buf, 2, MSG_WAITALL);
+        if (received != 2) break;
+        int resp_len = (resp_len_buf[0] << 8) | resp_len_buf[1];
+        if (resp_len > BUF_SIZE) {
+            cout << "Record too large, skipping\n";
+            break;
+        }
+        unsigned char resp_buf[BUF_SIZE];
+        received = recv(sockfd, resp_buf, resp_len, MSG_WAITALL);
+        if (received != resp_len) break;
+
+        ns_msg handle;
+        if (ns_initparse(resp_buf, received, &handle) < 0) {
+            cout << "Failed parsing AXFR response\n";
+            break;
+        }
+        int ancount = ns_msg_count(handle, ns_s_an);
+        for (int i=0; i<ancount; i++) {
+            ns_rr rr;
+            if (ns_parserr(&handle, ns_s_an, i, &rr) < 0) continue;
+            string rec_str = get_record_string(handle, rr);
+            cout << "  - " << rec_str << "\n";
+        }
+    }
+
+    close(sockfd);
 }
 
 // DNS spoofing detection - compare results of multiple servers on A records
@@ -491,7 +730,7 @@ void dns_spoofing_detection(const Options& opt, const string& domain, const vect
     map<string, set<string>> server_to_a_records;
 
     for (auto& srv : servers) {
-        unsigned char answer[NS_PACKETSZ];
+        unsigned char answer[4096];
         int len = 0;
         if (!perform_res_query(opt, domain, srv, ns_t_a, answer, len)) continue;
         ns_msg handle;
@@ -713,6 +952,10 @@ int main(int argc, char* argv[]) {
     Options opt;
     opt.query_types = {ns_t_a, ns_t_aaaa, ns_t_ns, ns_t_txt}; // default
 
+    bool run_port_scan = false;
+    vector<string> port_scan_targets;
+    vector<int> port_scan_ports;
+
     for (int i=1; i < argc; i++) {
         string arg = argv[i];
         if (arg == "-h") {
@@ -776,6 +1019,31 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             opt.dns_servers_multi = split(argv[++i], ',');
+        } else if (arg == "-P") {
+            // New option for port scan targets
+            if (i+1 >= argc) {
+                cerr << "Require argument after -P\n";
+                return 1;
+            }
+            port_scan_targets = split(argv[++i], ',');
+            run_port_scan = true;
+        } else if (arg == "-R") {
+            // New option for port scan ports
+            if (i+1 >= argc) {
+                cerr << "Require argument after -R\n";
+                return 1;
+            }
+            vector<string> ports_str = split(argv[++i], ',');
+            for (auto& p : ports_str) {
+                try {
+                    int port = stoi(p);
+                    port_scan_ports.push_back(port);
+                } catch (...) {
+                    cerr << "Invalid port number: " << p << "\n";
+                    return 1;
+                }
+            }
+            run_port_scan = true;
         } else if (arg[0] == '-') {
             cerr << "Unknown option: " << arg << "\n";
             print_usage();
@@ -785,7 +1053,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (opt.domain.empty()) {
+    if (opt.domain.empty() && !run_port_scan) {
         cerr << "Domain not specified\n";
         print_usage();
         return 1;
@@ -806,6 +1074,22 @@ int main(int argc, char* argv[]) {
     }
 
     // For multi-server queries: copy in resolver list (not trivial), we override temporarily per query in this design.
+
+    // If port scan requested, run it and exit
+    if (run_port_scan) {
+        if (port_scan_targets.empty() || port_scan_ports.empty()) {
+            cerr << "Port scan requires targets (-P) and ports (-R) specified\n";
+            return 1;
+        }
+        PortScanner::json_output_enabled = opt.output_json;
+        PortScanner scanner(port_scan_targets, port_scan_ports);
+        scanner.run_tcp_connect_scan();
+        if (opt.output_json) {
+            Json::Value root = scanner.results_to_json();
+            cout << root.toStyledString() << endl;
+        }
+        return 0;
+    }
 
     // Proxy detection
     if (opt.proxy_detection && !opt.dns_server.empty()) {

@@ -8,6 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/Users/sbruicesingh/WhiteDNS/PortScanner.cpp" "CMakeFiles/whitedns.dir/PortScanner.cpp.o" "gcc" "CMakeFiles/whitedns.dir/PortScanner.cpp.o.d"
   "/Users/sbruicesingh/WhiteDNS/WhiteDNS.cpp" "CMakeFiles/whitedns.dir/WhiteDNS.cpp.o" "gcc" "CMakeFiles/whitedns.dir/WhiteDNS.cpp.o.d"
   )
 

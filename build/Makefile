@@ -174,6 +174,30 @@ whitedns/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/whitedns.dir/build.make CMakeFiles/whitedns.dir/build
 .PHONY : whitedns/fast
 
+PortScanner.o: PortScanner.cpp.o
+.PHONY : PortScanner.o
+
+# target to build an object file
+PortScanner.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/whitedns.dir/build.make CMakeFiles/whitedns.dir/PortScanner.cpp.o
+.PHONY : PortScanner.cpp.o
+
+PortScanner.i: PortScanner.cpp.i
+.PHONY : PortScanner.i
+
+# target to preprocess a source file
+PortScanner.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/whitedns.dir/build.make CMakeFiles/whitedns.dir/PortScanner.cpp.i
+.PHONY : PortScanner.cpp.i
+
+PortScanner.s: PortScanner.cpp.s
+.PHONY : PortScanner.s
+
+# target to generate assembly for a file
+PortScanner.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/whitedns.dir/build.make CMakeFiles/whitedns.dir/PortScanner.cpp.s
+.PHONY : PortScanner.cpp.s
+
 WhiteDNS.o: WhiteDNS.cpp.o
 .PHONY : WhiteDNS.o
 
@@ -211,6 +235,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... whitedns"
+	@echo "... PortScanner.o"
+	@echo "... PortScanner.i"
+	@echo "... PortScanner.s"
 	@echo "... WhiteDNS.o"
 	@echo "... WhiteDNS.i"
 	@echo "... WhiteDNS.s"

@@ -13,9 +13,10 @@ if(NOT jsoncpp_FOUND)
 endif()
 
 # Source files
-set(SOURCES WhiteDNS.cpp)
+set(SOURCES WhiteDNS.cpp PortScanner.cpp)
 
 add_executable(whitedns ${SOURCES})
+
 
 # Link jsoncpp
 target_link_libraries(whitedns PRIVATE jsoncpp_lib)

@@ -1,0 +1,30 @@
+# Use official Debian base image for broad Linux compatibility (including Kali Linux)
+FROM debian:bookworm-slim
+
+# Set environment variables to avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libjsoncpp-dev \
+    libssl-dev \
+    libresolv-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code
+COPY . /app
+
+# Build WhiteDNS using CMake
+RUN cmake -B build && cmake --build build && cmake --install build --prefix /usr/local
+
+# Set entrypoint to whitedns binary
+ENTRYPOINT ["whitedns"]
+
+# Default command to show help
+CMD ["-h"]

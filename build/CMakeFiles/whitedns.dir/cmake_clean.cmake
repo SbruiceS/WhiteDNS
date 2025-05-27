@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/whitedns.dir/PortScanner.cpp.o"
+  "CMakeFiles/whitedns.dir/PortScanner.cpp.o.d"
   "CMakeFiles/whitedns.dir/WhiteDNS.cpp.o"
   "CMakeFiles/whitedns.dir/WhiteDNS.cpp.o.d"
   "whitedns"
