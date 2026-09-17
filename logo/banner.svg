@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070b14"/>
+      <stop offset="55%" stop-color="#0c1424"/>
+      <stop offset="100%" stop-color="#102033"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3ea6ff"/>
+      <stop offset="100%" stop-color="#1a6dff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1280" height="420" fill="url(#bg)"/>
+  <circle cx="1080" cy="80" r="180" fill="#1a6dff" opacity="0.07"/>
+  <circle cx="160" cy="360" r="140" fill="#3ea6ff" opacity="0.05"/>
+  <!-- orbit -->
+  <ellipse cx="640" cy="168" rx="210" ry="52" fill="none" stroke="url(#blue)" stroke-width="7" opacity="0.95"/>
+  <circle cx="838" cy="148" r="10" fill="#5cb6ff" filter="url(#glow)"/>
+  <!-- W -->
+  <path d="M430 86 L478 86 L532 214 L586 86 L634 86 L562 268 L502 268 L430 86 Z" fill="#f4f7fb"/>
+  <!-- shield -->
+  <path d="M700 78 L812 108 L812 188 C812 236 760 268 700 286 C640 268 588 236 588 188 L588 108 Z" fill="url(#blue)"/>
+  <path d="M700 102 L786 126 L786 184 C786 220 748 246 700 260 C652 246 614 220 614 184 L614 126 Z" fill="#0b1526" opacity="0.18"/>
+  <rect x="676" y="148" width="48" height="6" rx="3" fill="#eaf4ff"/>
+  <rect x="676" y="164" width="36" height="6" rx="3" fill="#eaf4ff" opacity="0.85"/>
+  <circle cx="688" cy="186" r="5" fill="#eaf4ff"/>
+  <circle cx="704" cy="186" r="5" fill="#eaf4ff"/>
+  <circle cx="720" cy="186" r="5" fill="#eaf4ff"/>
+  <text x="640" y="338" text-anchor="middle" font-family="Arial Black, Helvetica, sans-serif" font-size="58" letter-spacing="1">
+    <tspan fill="#f4f7fb">White</tspan><tspan fill="#3ea6ff">DNS</tspan>
+  </text>
+  <text x="640" y="372" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" letter-spacing="6" fill="#8aa4c7">DETECT  ·  ANALYZE  ·  SECURE  ·  EXPLORE</text>
+</svg>
