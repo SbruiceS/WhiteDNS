@@ -1,142 +1,131 @@
-<img src="logo/whitedns.jpg" alt="WhiteDNS logo" />
+<p align="center">
+  <img src="logo/whitedns.png" alt="WhiteDNS — Detect · Analyze · Secure · Explore" width="520" />
+</p>
 
-# WhiteDNS
+<h1 align="center">WhiteDNS</h1>
 
-WhiteDNS is a cross-platform DNS security, forensics, and reconnaissance platform in C++17 by **S. Bruice Singh** at **Cosinfotech Solutions**. It performs DNS record queries, resolver comparison, DNSSEC chain checks, wildcard/NXDOMAIN checks, TXT tunneling heuristics, AXFR exposure checks, TCP port scanning, and Phase-1 wire/transport/resolver engines. Design: `docs/PLATFORM.md`. Existing commands are kept; new commands are additive.
+<p align="center">
+  <strong>Advanced DNS Security, Forensics &amp; Reconnaissance Toolkit</strong><br/>
+  Detect · Analyze · Secure · Explore
+</p>
 
-## Platform Support
+<p align="center">
+  <a href="https://github.com/SbruiceS/WhiteDNS/actions"><img src="https://img.shields.io/badge/build-CMake%20C%2B%2B17-2ea44f?style=flat-square" alt="CMake C++17" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-see%20LICENSE-blue?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-111827?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/badge/RFC-9230%20ODoH-0052cc?style=flat-square" alt="RFC 9230 ODoH" />
+  <img src="https://img.shields.io/badge/DNSSEC-DS%E2%86%92DNSKEY-6f42c1?style=flat-square" alt="DNSSEC" />
+  <img src="https://img.shields.io/badge/taxonomy-161%20rules-orange?style=flat-square" alt="161 threat rules" />
+  <img src="https://img.shields.io/badge/stance-defensive%20only-lightgrey?style=flat-square" alt="Defensive only" />
+</p>
 
-- Linux: supported with GCC/Clang and CMake.
-- macOS: supported with Apple Clang and CMake.
-- Windows: supported with Visual Studio or another C++17 compiler through Winsock.
+<p align="center">
+  A product of <strong>Cosinfotech Solutions</strong> · Author <strong>S. Bruice Singh</strong><br/>
+  <a href="https://github.com/SbruiceS/WhiteDNS">github.com/SbruiceS/WhiteDNS</a>
+</p>
 
-WhiteDNS no longer depends on `_res`, `res_query`, or `libresolv`; DNS packets are sent through a thread-safe socket client.
+---
 
-## Architecture
+WhiteDNS is a C++17 command-line platform for **authorized** DNS security analysis, incident response, SOC work, lab research, and DNS administration.
 
-- `include/whitedns/DnsClient.h` and `src/DnsClient.cpp`: cross-platform UDP/TCP DNS client and packet parser.
-- `include/whitedns/Analyzer.h` and `src/Analyzer.cpp`: security checks that return structured results.
-- `include/whitedns/PortScanner.h` and `src/PortScanner.cpp`: non-blocking TCP connect scanner.
-- `src/main.cpp`: CLI parsing, concurrent queries, and human/JSON report rendering.
-- `scripts/` and `tests/`: live production smoke test tooling.
+It is **not** a vendor exploit kit. Cisco SAFE, ITU-T X.805, Nokia SR OS roles, HP/Aruba segmentation, and Dell endpoint notes are used as **defensive control mappings** only. No amplification, cache-poisoning exploit, or unauthorized AXFR/UPDATE is generated.
 
-WhiteDNS includes a local lightweight JSON writer under `include/json/json.h`, so the command-line tool does not require jsoncpp to build.
+Design: [`docs/PLATFORM.md`](docs/PLATFORM.md) · ODoH: [`docs/ODOH.md`](docs/ODOH.md) · Taxonomy: [`docs/THREAT_TAXONOMY.md`](docs/THREAT_TAXONOMY.md) · Frameworks: [`FRAMEWORKS.md`](FRAMEWORKS.md)
 
-## Features
+## What it does
 
-- Query A, AAAA, NS, TXT, SOA, MX, DNSKEY, RRSIG, AXFR, and ANY records.
-- Compare multiple DNS resolvers for spoofing, cache poisoning, fast-flux, and hijacking signals.
-- Check DNSSEC readiness by requesting DNSKEY/RRSIG records with EDNS DNSSEC OK.
-- Detect wildcard DNS, NXDOMAIN redirection, rebinding signals, and suspicious TXT payloads.
-- Check AXFR exposure against an explicit DNS server.
-- Run TCP port scans against hostnames or IP addresses.
-- Emit one consistent JSON report for all enabled modules.
+| Area | Command | Status |
+|---|---|---|
+| Record lookup / compare / trace | `lookup` `records` `resolve` `compare` `trace` | live |
+| Framework audit (SANS / MITRE / RFC / IANA / ISACA) | `audit` | live |
+| ODoH RFC 9230 + leak models | `odoh` `odoh-filter` `odoh-policy` `odoh-leak` | live (Fastly relay + Cloudflare target) |
+| Resolver TTL / RTT baseline | `baseline` | live |
+| RFC/SANS intel (SOA, MX, SPF, DMARC, CAA…) | `intel` | live |
+| DNSSEC DS→DNSKEY + RRSIG/NSEC inventory | `dnssec-path` | live MATCH on infosys.com, nasa.gov |
+| Poison 3-gate (DNSSEC ∧ disjoint resolvers ∧ AA) | `poison` | live; never invents “confirmed” |
+| 161-rule threat taxonomy | `threats` `detect` `explain` `research` | live |
+| FINDING/ANOMALY roll-up | `faults` | live |
+| Vendor **control** gaps (not attacks) | `controls` | live |
+
+**Poison confirmation rule:** DNSSEC contradiction **and** multi-resolver disjoint A-sets **and** authoritative AA disagreement. One-shot remote checks never invent a confirmed attack.
+
+## Live snapshots (this tree)
+
+**infosys.com** — poison `none` gates `0/0/0`, AA + recursors `35.71.178.178`, DNSSEC **MATCH**, controls 13/13 PASS. `faults` listed 7 low-confidence TXT-volume anomalies (public vendor tokens), not an incident.
+
+**google.com** — poison `not-confirmed` gates `0/1/1` (anycast), DNSSEC unsigned on this path, controls GAP only on CISCO-SAFE-02 / ITU-X805-01 integrity.
+
+## Platform support
+
+- Linux (GCC/Clang + CMake)
+- macOS (Apple Clang + CMake)
+- Windows (MSVC / any C++17 + Winsock)
+- Android Termux
+
+No `libresolv` / `_res`. UDP/TCP, DoH, and ODoH go through the in-tree client.
 
 ## Build
-
-### Linux/macOS
 
 ```bash
 cmake -B build
 cmake --build build
-./build/whitedns -h
+./build/whitedns --help
 ```
 
-### Windows PowerShell
+Windows:
 
 ```powershell
 cmake -B build
 cmake --build build --config Release
-.\build\Release\whitedns.exe -h
+.\build\Release\whitedns.exe --help
 ```
 
-The exact Windows binary path depends on the CMake generator. Single-config generators may place it at `.\build\whitedns.exe`.
+OpenSSL is used for DNSSEC digest and ODoH/HPKE when present (`WHITEDNS_HAVE_OPENSSL`).
 
 ## Usage
 
 ```bash
-whitedns <command> [options] <domain|url>
-whitedns --version
-whitedns help
+whitedns <command> [options] <domain>
 ```
-
-Platforms: Linux, Windows, macOS, Termux (`Android/Termux` in `--version`).
 
 ```bash
 whitedns audit google.com
-whitedns audit --format json --fail-on degraded --color never google.com
-WHITEDNS_RESOLVERS=8.8.8.8,1.1.1.1 whitedns audit google.com
+whitedns odoh nasa.gov
+whitedns odoh-leak
+whitedns intel infosys.com
+whitedns dnssec-path infosys.com
+whitedns poison infosys.com
+whitedns threats list
+whitedns threats info WDNS-POISON-001
+whitedns detect infosys.com
+whitedns faults infosys.com
+whitedns controls google.com
+whitedns baseline infosys.com
 ```
 
-```bash
-whitedns [options] domain
+Classic flags still work (`-t`, `-s`, `-S`, `-r`, `-n`, `-w`, `-c`, `-x`, `-A`, `-H`, `-j`).
+
+Scope: set `WHITEDNS_SCOPE` or `--scope`. Safe profile does not send AXFR or RFC 2136 UPDATE to third-party nameservers.
+
+## Architecture (additive)
+
+```
+TARGET → SCOPE → QUERY PLAN → TRANSPORT (UDP/TCP/DoH/ODoH)
+      → RESOLVER ENGINE → PARSER → CORRELATION
+      → SECURITY / ANOMALY / EVIDENCE / FINDING → REPORT
 ```
 
-Common options:
+Core lives under `include/whitedns/core` and `src/core`. Existing `DnsClient`, `Analyzer`, `FrameworkAudit`, and scanners are unchanged.
 
-- `-t <types>`: DNS record types, for example `A,AAAA,NS,MX,TXT`.
-- `-s <server>`: DNS server hostname or IP. Defaults to `8.8.8.8`.
-- `-S <servers>`: comma-separated resolver list for comparison.
-- `-r`: DNSSEC readiness check using DNSKEY/RRSIG records.
-- `-n`: NXDOMAIN redirection check.
-- `-w`: wildcard DNS check.
-- `-c`: cache poisoning signal check across resolvers.
-- `-x`: DNS tunneling TXT heuristic.
-- `-A`: DNS spoofing signal check across resolvers.
-- `-H`: DNS hijacking signal check across resolvers.
-- `-P <targets>`: comma-separated TCP port scan targets.
-- `-R <ports>`: comma-separated TCP ports.
-- `-j`: one structured JSON report.
-
-Examples:
-
-```bash
-whitedns -j -r -n -w -x -t A,AAAA,NS,MX,TXT google.com
-whitedns -S 1.1.1.1,8.8.8.8,9.9.9.9 -c -A -H microsoft.com
-whitedns -P google.com,facebook.com,microsoft.com -R 80,443 -j
-```
-
-## Production Smoke Tests
-
-Live smoke tests use:
-
-- `google.com`
-- `facebook.com`
-- `microsoft.com`
-
-Linux/macOS:
+## Tests
 
 ```bash
 sh scripts/run-production-smoke.sh ./build/whitedns
+cmake -B build -DWHITEDNS_ENABLE_NETWORK_TESTS=ON && ctest --test-dir build --output-on-failure
 ```
 
-Windows PowerShell:
+Production names used in live checks: `google.com`, `facebook.com`, `microsoft.com`, `nasa.gov`, `infosys.com`.
 
-```powershell
-.\scripts\run-production-smoke.ps1 -Binary .\build\Release\whitedns.exe
-```
+## License
 
-CMake can also register live tests when explicitly enabled:
-
-```bash
-cmake -B build -DWHITEDNS_ENABLE_NETWORK_TESTS=ON
-cmake --build build
-ctest --test-dir build --output-on-failure
-```
-
-## JSON Schema
-
-JSON output always contains the same top-level fields:
-
-```json
-{
-  "tool": "WhiteDNS",
-  "schema_version": 1,
-  "domain": "example.com",
-  "queries": [],
-  "checks": [],
-  "port_scan": []
-}
-```
-
-All modules write into this structure, so automation does not receive mixed text and JSON.
+See [`LICENSE`](LICENSE).
