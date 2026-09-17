@@ -1,0 +1,1465 @@
+{
+  "controls": [
+    {
+      "conclusion": "partially effective",
+      "control_id": "DSS05.02",
+      "test_procedure": "Inspect DNSSEC chain, resolver disagreement, NXDOMAIN integrity, and AXFR exposure.",
+      "tests": [
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-ADDR-003",
+          "mitre": "T1590.002",
+          "observation": "Address records are present.",
+          "result": "pass",
+          "rfc": "RFC1035 A; RFC3596 AAAA",
+          "severity": "info",
+          "title": "A / AAAA addressing"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MX-004",
+          "mitre": "T1590.002",
+          "observation": "MX records are published.",
+          "result": "pass",
+          "rfc": "RFC1035 MX; RFC7505 null MX",
+          "severity": "info",
+          "title": "Mail exchanger set"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MAILAUTH-005",
+          "mitre": "T1586",
+          "observation": "SPF and DMARC policy records are present.",
+          "result": "pass",
+          "rfc": "RFC7208 SPF; RFC7489 DMARC",
+          "severity": "info",
+          "title": "SPF and DMARC policy in DNS"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "MITRE-T1071-006",
+          "mitre": "T1071.004",
+          "observation": "TXT set does not show obvious high-entropy tunneling payload at the apex.",
+          "result": "pass",
+          "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+          "severity": "info",
+          "title": "DNS application-layer abuse heuristic"
+        },
+        {
+          "corrective_action": "No poisoning change required. Continue multi-resolver monitoring.",
+          "finding_id": "SANS-POISON-007",
+          "mitre": "T1557",
+          "observation": "Compared resolvers returned a consistent A set for this vantage point.",
+          "result": "pass",
+          "rfc": "RFC5452 measures against cache poisoning; RFC1034 resolution",
+          "severity": "info",
+          "title": "Multi-resolver A-record consistency"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-FLUX-008",
+          "mitre": "T1568.001",
+          "observation": "Address TTLs are not uniformly sub-minute.",
+          "result": "pass",
+          "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+          "severity": "info",
+          "title": "Address TTL fast-flux signal"
+        },
+        {
+          "corrective_action": "Publish DS at the parent that hashes the current KSK, or repair DNSKEY publication. Presence-only DNSSEC is not enough.",
+          "finding_id": "SANS-DNSSEC-009",
+          "mitre": "T1557",
+          "observation": "Cannot validate the parent chain: DS or DNSKEY RDATA is missing.",
+          "result": "warning",
+          "rfc": "RFC4033/4034/4035",
+          "severity": "medium",
+          "title": "DNSSEC cryptographic parent chain"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-CAA-010",
+          "mitre": "T1588.004",
+          "observation": "CAA policy is published.",
+          "result": "pass",
+          "rfc": "RFC8659",
+          "severity": "info",
+          "title": "CAA certificate issuance policy"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-NX-012",
+          "mitre": "T1565",
+          "observation": "Resolver returned NXDOMAIN as expected.",
+          "result": "pass",
+          "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+          "severity": "info",
+          "title": "NXDOMAIN integrity"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-WILD-013",
+          "mitre": "T1584.001",
+          "observation": "Random subdomain did not resolve.",
+          "result": "pass",
+          "rfc": "RFC4592 wildcards",
+          "severity": "info",
+          "title": "Wildcard coverage"
+        },
+        {
+          "corrective_action": "Keep AXFR locked down. Re-test after nameserver changes.",
+          "finding_id": "RFC-AXFR-014",
+          "mitre": "T1590.002",
+          "observation": "AXFR against a.ns.facebook.com did not leak a zone (RCODE NOERROR).",
+          "result": "pass",
+          "rfc": "RFC5936 AXFR",
+          "severity": "info",
+          "title": "AXFR exposure"
+        }
+      ],
+      "title": "Manage network and connectivity security"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "DSS01.03",
+      "test_procedure": "Query each NS for SOA+AA (lame delegation) and IANA RCODE health.",
+      "tests": [
+        {
+          "corrective_action": "No vendor-diversity change required solely because the NS names share the zone. Confirm the servers are anycast/multi-site internally.",
+          "finding_id": "IANA-NS-002",
+          "mitre": "T1583.002",
+          "observation": "NS hosts are in-bailiwick first-party names (4 unique servers). Shared parent label is expected for self-hosted anycast sets such as ns1-ns4.google.com.",
+          "result": "pass",
+          "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+          "severity": "info",
+          "title": "Name server architecture"
+        },
+        {
+          "corrective_action": "No lame-delegation change required.",
+          "finding_id": "RFC-LAME-015",
+          "mitre": "T1498",
+          "observation": "Every listed NS answered SOA with AA set.",
+          "result": "pass",
+          "rfc": "RFC1034 lame delegation; RFC2182",
+          "severity": "info",
+          "title": "Lame delegation"
+        },
+        {
+          "corrective_action": "Keep NS glue in sync when addresses change.",
+          "finding_id": "RFC-GLUE-016",
+          "mitre": "T1590.002",
+          "observation": "In-bailiwick NS names resolve to A and/or AAAA.",
+          "result": "pass",
+          "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+          "severity": "info",
+          "title": "In-bailiwick NS glue / address"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        }
+      ],
+      "title": "Monitor IT infrastructure"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "DSS04.03",
+      "test_procedure": "Test NS architecture, glue, and dual-stack addressing.",
+      "tests": [
+        {
+          "corrective_action": "No vendor-diversity change required solely because the NS names share the zone. Confirm the servers are anycast/multi-site internally.",
+          "finding_id": "IANA-NS-002",
+          "mitre": "T1583.002",
+          "observation": "NS hosts are in-bailiwick first-party names (4 unique servers). Shared parent label is expected for self-hosted anycast sets such as ns1-ns4.google.com.",
+          "result": "pass",
+          "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+          "severity": "info",
+          "title": "Name server architecture"
+        },
+        {
+          "corrective_action": "No lame-delegation change required.",
+          "finding_id": "RFC-LAME-015",
+          "mitre": "T1498",
+          "observation": "Every listed NS answered SOA with AA set.",
+          "result": "pass",
+          "rfc": "RFC1034 lame delegation; RFC2182",
+          "severity": "info",
+          "title": "Lame delegation"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        }
+      ],
+      "title": "Continuity of essential services"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "BAI10.02",
+      "test_procedure": "Record SOA serial, CAA, and CNAME targets as configuration evidence.",
+      "tests": [
+        {
+          "corrective_action": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+          "finding_id": "RFC-SOA-001",
+          "mitre": "T1584.002",
+          "observation": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+          "result": "pass",
+          "rfc": "RFC1035 §3.3.13",
+          "severity": "info",
+          "title": "SOA authority record"
+        },
+        {
+          "corrective_action": "Keep NS glue in sync when addresses change.",
+          "finding_id": "RFC-GLUE-016",
+          "mitre": "T1590.002",
+          "observation": "In-bailiwick NS names resolve to A and/or AAAA.",
+          "result": "pass",
+          "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+          "severity": "info",
+          "title": "In-bailiwick NS glue / address"
+        },
+        {
+          "corrective_action": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+          "finding_id": "RFC-CNAME-017",
+          "mitre": "T1584.001",
+          "observation": "No dangling CNAME on apex or www from this vantage point.",
+          "result": "pass",
+          "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+          "severity": "info",
+          "title": "Dangling CNAME"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-CAA-010",
+          "mitre": "T1588.004",
+          "observation": "CAA policy is published.",
+          "result": "pass",
+          "rfc": "RFC8659",
+          "severity": "info",
+          "title": "CAA certificate issuance policy"
+        }
+      ],
+      "title": "Manage configuration changes"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "BAI09.01",
+      "test_procedure": "Identify dangling CNAME and stale delegation records.",
+      "tests": [
+        {
+          "corrective_action": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+          "finding_id": "RFC-CNAME-017",
+          "mitre": "T1584.001",
+          "observation": "No dangling CNAME on apex or www from this vantage point.",
+          "result": "pass",
+          "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+          "severity": "info",
+          "title": "Dangling CNAME"
+        }
+      ],
+      "title": "Manage assets"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "APO12.02",
+      "test_procedure": "Map residual DNS risk to MITRE ATT&CK and SANS classes.",
+      "tests": [
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MX-004",
+          "mitre": "T1590.002",
+          "observation": "MX records are published.",
+          "result": "pass",
+          "rfc": "RFC1035 MX; RFC7505 null MX",
+          "severity": "info",
+          "title": "Mail exchanger set"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-FLUX-008",
+          "mitre": "T1568.001",
+          "observation": "Address TTLs are not uniformly sub-minute.",
+          "result": "pass",
+          "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+          "severity": "info",
+          "title": "Address TTL fast-flux signal"
+        }
+      ],
+      "title": "Risk analysis"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "MEA01.03",
+      "test_procedure": "Export scored findings and change-required statements.",
+      "tests": [
+        {
+          "corrective_action": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+          "finding_id": "RFC-SOA-001",
+          "mitre": "T1584.002",
+          "observation": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+          "result": "pass",
+          "rfc": "RFC1035 §3.3.13",
+          "severity": "info",
+          "title": "SOA authority record"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "MITRE-T1071-006",
+          "mitre": "T1071.004",
+          "observation": "TXT set does not show obvious high-entropy tunneling payload at the apex.",
+          "result": "pass",
+          "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+          "severity": "info",
+          "title": "DNS application-layer abuse heuristic"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-NX-012",
+          "mitre": "T1565",
+          "observation": "Resolver returned NXDOMAIN as expected.",
+          "result": "pass",
+          "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+          "severity": "info",
+          "title": "NXDOMAIN integrity"
+        }
+      ],
+      "title": "Monitor, evaluate and assess performance"
+    }
+  ],
+  "engagement": {
+    "fault_score": 15,
+    "posture": "resilient",
+    "procedure": "Independent DNS control test using RFC/IANA observations mapped to COBIT management objectives.",
+    "subject": "facebook.com"
+  },
+  "schema": "whitedns.isaca.workpaper.v1",
+  "source_audit": {
+    "domain": "facebook.com",
+    "fault_score": 15,
+    "findings": [
+      {
+        "change_required": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+        "evidence": {
+          "soa": [
+            "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-SOA-001",
+        "isaca": "ISACA COBIT BAI10 Change Management; MEA01 Performance Monitoring",
+        "message": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+        "mitre": {
+          "id": "T1584.002",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1035 §3.3.13",
+        "sans_class": "SANS: zone integrity / unauthorized DNS change monitoring",
+        "severity": "info",
+        "status": "pass",
+        "title": "SOA authority record"
+      },
+      {
+        "change_required": "No vendor-diversity change required solely because the NS names share the zone. Confirm the servers are anycast/multi-site internally.",
+        "evidence": {
+          "ns": [
+            "a.ns.facebook.com",
+            "b.ns.facebook.com",
+            "c.ns.facebook.com",
+            "d.ns.facebook.com"
+          ],
+          "provider_labels": 1
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "IANA-NS-002",
+        "isaca": "ISACA COBIT DSS01 Operations; DSS04 Continuity",
+        "message": "NS hosts are in-bailiwick first-party names (4 unique servers). Shared parent label is expected for self-hosted anycast sets such as ns1-ns4.google.com.",
+        "mitre": {
+          "id": "T1583.002",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+        "sans_class": "SANS ISC: distinct / diverse authoritative servers",
+        "severity": "info",
+        "status": "pass",
+        "title": "Name server architecture"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "a": [
+            "57.144.74.1"
+          ],
+          "aaaa": [
+            "2a03:2880:f31d:1:face:b00c:0:25de"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-ADDR-003",
+        "isaca": "ISACA COBIT DSS05 Managed Security Services",
+        "message": "Address records are present.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1035 A; RFC3596 AAAA",
+        "sans_class": "SANS: resolution integrity and availability",
+        "severity": "info",
+        "status": "pass",
+        "title": "A / AAAA addressing"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "mx": [
+            "smtpin.vvv.facebook.com (pref 10)"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-MX-004",
+        "isaca": "ISACA COBIT DSS05; APO12 Risk",
+        "message": "MX records are published.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1035 MX; RFC7505 null MX",
+        "sans_class": "SANS: infrastructure enumeration and hijack surface",
+        "severity": "info",
+        "status": "pass",
+        "title": "Mail exchanger set"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "dmarc": true,
+          "spf": true
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-MAILAUTH-005",
+        "isaca": "ISACA COBIT DSS05.02 Manage network and connectivity security; APO13 Security",
+        "message": "SPF and DMARC policy records are present.",
+        "mitre": {
+          "id": "T1586",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC7208 SPF; RFC7489 DMARC",
+        "sans_class": "SANS: DNS as a security control plane (policy records)",
+        "severity": "info",
+        "status": "pass",
+        "title": "SPF and DMARC policy in DNS"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "long_txt": false,
+          "max_txt_entropy": "5.206958"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "MITRE-T1071-006",
+        "isaca": "ISACA COBIT DSS05.07 Monitor security; MEA01",
+        "message": "TXT set does not show obvious high-entropy tunneling payload at the apex.",
+        "mitre": {
+          "id": "T1071.004",
+          "tactic": "Command and Control"
+        },
+        "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+        "sans_class": "SANS: DNS tunneling / covert channel review",
+        "severity": "info",
+        "status": "pass",
+        "title": "DNS application-layer abuse heuristic"
+      },
+      {
+        "change_required": "No poisoning change required. Continue multi-resolver monitoring.",
+        "evidence": {
+          "exact_disagreement": false,
+          "poison_signal": false,
+          "resolver_count": 1
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-POISON-007",
+        "isaca": "ISACA COBIT DSS05; MEA02 Internal control monitoring",
+        "message": "Compared resolvers returned a consistent A set for this vantage point.",
+        "mitre": {
+          "id": "T1557",
+          "tactic": "Credential Access / Collection (adversary-in-the-middle class)"
+        },
+        "rfc": "RFC5452 measures against cache poisoning; RFC1034 resolution",
+        "sans_class": "SANS: cache poisoning and DNS hijacking",
+        "severity": "info",
+        "status": "pass",
+        "title": "Multi-resolver A-record consistency"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "sample_ttl_count": 2
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-FLUX-008",
+        "isaca": "ISACA COBIT DSS05; APO12",
+        "message": "Address TTLs are not uniformly sub-minute.",
+        "mitre": {
+          "id": "T1568.001",
+          "tactic": "Command and Control"
+        },
+        "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+        "sans_class": "SANS: fast-flux detection",
+        "severity": "info",
+        "status": "pass",
+        "title": "Address TTL fast-flux signal"
+      },
+      {
+        "change_required": "Publish DS at the parent that hashes the current KSK, or repair DNSKEY publication. Presence-only DNSSEC is not enough.",
+        "evidence": {
+          "backend": "openssl",
+          "cryptographic_ds_match": false,
+          "dnskey_count": 0,
+          "dnskey_present": false,
+          "ds_count": 0,
+          "ds_present": false,
+          "rfc": "RFC4034 §5.1.4 DS digest over owner|DNSKEY RDATA"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-DNSSEC-009",
+        "isaca": "ISACA COBIT DSS05.02; NIST-aligned SC-20/SC-21 via COBIT DSS05",
+        "message": "Cannot validate the parent chain: DS or DNSKEY RDATA is missing.",
+        "mitre": {
+          "id": "T1557",
+          "tactic": "Adversary-in-the-middle class"
+        },
+        "rfc": "RFC4033/4034/4035",
+        "sans_class": "SANS Ed Skoudis: deploy DNSSEC signing and validation together",
+        "severity": "medium",
+        "status": "warning",
+        "title": "DNSSEC cryptographic parent chain"
+      },
+      {
+        "change_required": "No lame-delegation change required.",
+        "evidence": {
+          "servers": [
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "a.ns.facebook.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "b.ns.facebook.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "c.ns.facebook.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "d.ns.facebook.com",
+              "rcode": "NOERROR"
+            }
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-LAME-015",
+        "isaca": "ISACA COBIT DSS01 Operations; DSS04 Continuity",
+        "message": "Every listed NS answered SOA with AA set.",
+        "mitre": {
+          "id": "T1498",
+          "tactic": "Impact"
+        },
+        "rfc": "RFC1034 lame delegation; RFC2182",
+        "sans_class": "SANS ISC: authoritative server health",
+        "severity": "info",
+        "status": "pass",
+        "title": "Lame delegation"
+      },
+      {
+        "change_required": "Keep NS glue in sync when addresses change.",
+        "evidence": {
+          "ns": [
+            {
+              "in_bailiwick": true,
+              "ns": "a.ns.facebook.com",
+              "resolved": true
+            },
+            {
+              "in_bailiwick": true,
+              "ns": "b.ns.facebook.com",
+              "resolved": true
+            },
+            {
+              "in_bailiwick": true,
+              "ns": "c.ns.facebook.com",
+              "resolved": true
+            },
+            {
+              "in_bailiwick": true,
+              "ns": "d.ns.facebook.com",
+              "resolved": true
+            }
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-GLUE-016",
+        "isaca": "ISACA COBIT DSS01; BAI10",
+        "message": "In-bailiwick NS names resolve to A and/or AAAA.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+        "sans_class": "SANS: delegation integrity",
+        "severity": "info",
+        "status": "pass",
+        "title": "In-bailiwick NS glue / address"
+      },
+      {
+        "change_required": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+        "evidence": {
+          "cnames": [
+            {
+              "dangling": false,
+              "owner": "www.facebook.com",
+              "target": "star-mini.c10r.facebook.com",
+              "target_rcode": "NOERROR"
+            }
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-CNAME-017",
+        "isaca": "ISACA COBIT BAI09 assets; BAI10 change",
+        "message": "No dangling CNAME on apex or www from this vantage point.",
+        "mitre": {
+          "id": "T1584.001",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+        "sans_class": "SANS: stale DNS / dangling records",
+        "severity": "info",
+        "status": "pass",
+        "title": "Dangling CNAME"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "caa": [
+            "CAA flags=0 tag=issue value=digicert.com; account=271b0beda0771d006aa3a6c11b05187d456d6c239b46cb5241196095b09c92af"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-CAA-010",
+        "isaca": "ISACA COBIT DSS05; BAI10",
+        "message": "CAA policy is published.",
+        "mitre": {
+          "id": "T1588.004",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC8659",
+        "sans_class": "SANS: monitor certificates associated with the organization",
+        "severity": "info",
+        "status": "pass",
+        "title": "CAA certificate issuance policy"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "formerr": 0,
+          "noerror": 29,
+          "refused": 0,
+          "servfail": 0
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "IANA-RCODE-011",
+        "isaca": "ISACA COBIT DSS01; DSS04; MEA01",
+        "message": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+        "mitre": {
+          "id": "T1498",
+          "tactic": "Impact (availability)"
+        },
+        "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+        "sans_class": "SANS ISC: monitor domains and resolver health",
+        "severity": "info",
+        "status": "pass",
+        "title": "IANA RCODE health"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "analyzer": "nxdomain_redirect"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-NX-012",
+        "isaca": "ISACA COBIT DSS05; MEA01",
+        "message": "Resolver returned NXDOMAIN as expected.",
+        "mitre": {
+          "id": "T1565",
+          "tactic": "Impact"
+        },
+        "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+        "sans_class": "SANS: NXDOMAIN flood / redirection and resolver integrity",
+        "severity": "info",
+        "status": "pass",
+        "title": "NXDOMAIN integrity"
+      },
+      {
+        "change_required": "",
+        "evidence": {},
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-WILD-013",
+        "isaca": "ISACA COBIT DSS05",
+        "message": "Random subdomain did not resolve.",
+        "mitre": {
+          "id": "T1584.001",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC4592 wildcards",
+        "sans_class": "SANS: wildcard and catch-all resolution surface",
+        "severity": "info",
+        "status": "pass",
+        "title": "Wildcard coverage"
+      },
+      {
+        "change_required": "Keep AXFR locked down. Re-test after nameserver changes.",
+        "evidence": {
+          "error": "",
+          "rcode": "NOERROR",
+          "target": "a.ns.facebook.com"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-AXFR-014",
+        "isaca": "ISACA COBIT DSS05.02 least functionality of name service",
+        "message": "AXFR against a.ns.facebook.com did not leak a zone (RCODE NOERROR).",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC5936 AXFR",
+        "sans_class": "SANS: zone transfer leakage / reconnaissance",
+        "severity": "info",
+        "status": "pass",
+        "title": "AXFR exposure"
+      }
+    ],
+    "frameworks": {
+      "iana": "IANA DNS Parameters",
+      "isaca": "COBIT 2019 DSS05/APO12/BAI10/MEA01 mapped control language",
+      "mitre_attack": "MITRE ATT&CK Enterprise DNS-related techniques",
+      "rfc": "RFC 1034/1035 plus record-specific RFCs",
+      "sans": "SANS Institute DNS attack classes and ISC operational checklists"
+    },
+    "posture": "resilient",
+    "queries": [
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3515,
+            "type": "SOA",
+            "value": "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 4,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "NS",
+            "value": "c.ns.facebook.com"
+          },
+          {
+            "ttl": 21600,
+            "type": "NS",
+            "value": "a.ns.facebook.com"
+          },
+          {
+            "ttl": 21600,
+            "type": "NS",
+            "value": "b.ns.facebook.com"
+          },
+          {
+            "ttl": 21600,
+            "type": "NS",
+            "value": "d.ns.facebook.com"
+          }
+        ],
+        "architecture_role": "delegation",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "NS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 97,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 60,
+            "type": "A",
+            "value": "57.144.74.1"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 46,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 60,
+            "type": "AAAA",
+            "value": "2a03:2880:f31d:1:face:b00c:0:25de"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 58,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 1741,
+            "type": "MX",
+            "value": "smtpin.vvv.facebook.com (pref 10)"
+          }
+        ],
+        "architecture_role": "mail-exchange",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "MX",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 57,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 6,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "TXT",
+            "value": "v=spf1 redirect=_spf.facebook.com"
+          },
+          {
+            "ttl": 7200,
+            "type": "TXT",
+            "value": "google-site-verification=sK6uY9x7eaMoEMfn3OILqwTFYgaNp4llmguKI-C3_iA"
+          },
+          {
+            "ttl": 3600,
+            "type": "TXT",
+            "value": "zoom-domain-verification=4b2ef4e1-6dee-4483-9869-9bef353fd147"
+          },
+          {
+            "ttl": 3600,
+            "type": "TXT",
+            "value": "facebook-domain-verification=y7isfmi3kzyg1r4wophh9vyb6pgbda"
+          },
+          {
+            "ttl": 7200,
+            "type": "TXT",
+            "value": "google-site-verification=wdH5DTJTc9AYNwVunSVFeK0hYDGUIEOGb-RReU6pJlY"
+          },
+          {
+            "ttl": 7200,
+            "type": "TXT",
+            "value": "google-site-verification=A2WZWCNQHrGV_TWwKh6KHY90tY0SHZo_RnyMJoDaG0s"
+          }
+        ],
+        "architecture_role": "policy-or-payload",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "TXT",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 465,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "alias",
+        "authority_count": 1,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 1090,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=digicert.com; account=271b0beda0771d006aa3a6c11b05187d456d6c239b46cb5241196095b09c92af"
+          }
+        ],
+        "architecture_role": "certificate-binding",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 135,
+        "rfc": "RFC8659",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 1,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DNSKEY",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 86,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 6,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 570,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 1,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "RRSIG",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 86,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3297,
+            "type": "TXT",
+            "value": "v=DMARC1; p=reject; rua=mailto:a@dmarc.facebookmail.com; ruf=mailto:fb-dmarc@datafeeds.phishlabs.com; pct=100"
+          }
+        ],
+        "architecture_role": "policy-or-payload",
+        "authority_count": 0,
+        "domain": "_dmarc.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "TXT",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 159,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 802,
+            "type": "DS",
+            "value": "a.gtld-servers.net. nstld.verisign-grs.com. 1789651883 1800 900 604800 900"
+          },
+          {
+            "ttl": 802,
+            "type": "SOA",
+            "value": "a.gtld-servers.net. nstld.verisign-grs.com. 1789651883 1800 900 604800 900"
+          }
+        ],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 0,
+        "rfc": "RFC4034",
+        "server": "https://dns.google/resolve?name=facebook.com&type=DS",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 1797,
+            "type": "DNSKEY",
+            "value": "a.ns.facebook.com. dns.facebook.com. 4207849484 14400 1800 604800 300"
+          },
+          {
+            "ttl": 1797,
+            "type": "SOA",
+            "value": "a.ns.facebook.com. dns.facebook.com. 4207849484 14400 1800 604800 300"
+          }
+        ],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DNSKEY",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 0,
+        "rfc": "RFC4034",
+        "server": "https://dns.google/resolve?name=facebook.com&type=DNSKEY",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3600,
+            "type": "SOA",
+            "value": "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "a.ns.facebook.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3600,
+            "type": "SOA",
+            "value": "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "b.ns.facebook.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3600,
+            "type": "SOA",
+            "value": "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "c.ns.facebook.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 3600,
+            "type": "SOA",
+            "value": "SOA a.ns.facebook.com dns.facebook.com serial 4207849484"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "d.ns.facebook.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 19111,
+            "type": "A",
+            "value": "129.134.30.12"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "a.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 51,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 20485,
+            "type": "AAAA",
+            "value": "2a03:2880:f0fc:c:face:b00c:0:35"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "a.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 63,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 20354,
+            "type": "A",
+            "value": "129.134.31.12"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "b.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 51,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 16934,
+            "type": "AAAA",
+            "value": "2a03:2880:f0fd:c:face:b00c:0:35"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "b.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 63,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 17231,
+            "type": "A",
+            "value": "185.89.218.12"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "c.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 51,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "AAAA",
+            "value": "2a03:2880:f1fc:c:face:b00c:0:35"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "c.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 63,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 18762,
+            "type": "A",
+            "value": "185.89.219.12"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "d.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 51,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21152,
+            "type": "AAAA",
+            "value": "2a03:2880:f1fd:c:face:b00c:0:35"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "d.ns.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 63,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 942,
+            "type": "CNAME",
+            "value": "star-mini.c10r.facebook.com"
+          }
+        ],
+        "architecture_role": "alias",
+        "authority_count": 0,
+        "domain": "www.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 63,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "alias",
+        "authority_count": 1,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 60,
+            "type": "A",
+            "value": "57.144.74.1"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "star-mini.c10r.facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 61,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "zone-replication",
+        "authority_count": 1,
+        "domain": "facebook.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AXFR",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 75,
+        "rfc": "RFC5936",
+        "server": "a.ns.facebook.com",
+        "truncated": false
+      }
+    ],
+    "schema": "whitedns.framework.v1",
+    "tool": "WhiteDNS"
+  },
+  "standard": "ISACA COBIT 2019",
+  "tool": "WhiteDNS"
+}

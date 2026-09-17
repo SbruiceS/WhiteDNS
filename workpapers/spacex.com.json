@@ -1,0 +1,1390 @@
+{
+  "controls": [
+    {
+      "conclusion": "partially effective",
+      "control_id": "DSS05.02",
+      "test_procedure": "Inspect DNSSEC chain, resolver disagreement, NXDOMAIN integrity, and AXFR exposure.",
+      "tests": [
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-ADDR-003",
+          "mitre": "T1590.002",
+          "observation": "Address records are present.",
+          "result": "pass",
+          "rfc": "RFC1035 A; RFC3596 AAAA",
+          "severity": "info",
+          "title": "A / AAAA addressing"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MX-004",
+          "mitre": "T1590.002",
+          "observation": "MX records are published.",
+          "result": "pass",
+          "rfc": "RFC1035 MX; RFC7505 null MX",
+          "severity": "info",
+          "title": "Mail exchanger set"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MAILAUTH-005",
+          "mitre": "T1586",
+          "observation": "SPF and DMARC policy records are present.",
+          "result": "pass",
+          "rfc": "RFC7208 SPF; RFC7489 DMARC",
+          "severity": "info",
+          "title": "SPF and DMARC policy in DNS"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "MITRE-T1071-006",
+          "mitre": "T1071.004",
+          "observation": "Long high-entropy TXT data at apex. Treat as a T1071.004 review item (possible tunneling/payload abuse), not proof of compromise.",
+          "result": "warning",
+          "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+          "severity": "medium",
+          "title": "DNS application-layer abuse heuristic"
+        },
+        {
+          "corrective_action": "No poisoning change required. Continue multi-resolver monitoring.",
+          "finding_id": "SANS-POISON-007",
+          "mitre": "T1557",
+          "observation": "Compared resolvers returned a consistent A set for this vantage point.",
+          "result": "pass",
+          "rfc": "RFC5452 measures against cache poisoning; RFC1034 resolution",
+          "severity": "info",
+          "title": "Multi-resolver A-record consistency"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-FLUX-008",
+          "mitre": "T1568.001",
+          "observation": "All observed address TTLs are under 60 seconds. Fast-flux botnets use this pattern; CDNs can as well.",
+          "result": "warning",
+          "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+          "severity": "medium",
+          "title": "Address TTL fast-flux signal"
+        },
+        {
+          "corrective_action": "Publish DS at the parent that hashes the current KSK, or repair DNSKEY publication. Presence-only DNSSEC is not enough.",
+          "finding_id": "SANS-DNSSEC-009",
+          "mitre": "T1557",
+          "observation": "Cannot validate the parent chain: DS or DNSKEY RDATA is missing.",
+          "result": "warning",
+          "rfc": "RFC4033/4034/4035",
+          "severity": "medium",
+          "title": "DNSSEC cryptographic parent chain"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-CAA-010",
+          "mitre": "T1588.004",
+          "observation": "CAA policy is published.",
+          "result": "pass",
+          "rfc": "RFC8659",
+          "severity": "info",
+          "title": "CAA certificate issuance policy"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-NX-012",
+          "mitre": "T1565",
+          "observation": "Resolver returned NXDOMAIN as expected.",
+          "result": "pass",
+          "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+          "severity": "info",
+          "title": "NXDOMAIN integrity"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-WILD-013",
+          "mitre": "T1584.001",
+          "observation": "Random subdomain did not resolve.",
+          "result": "pass",
+          "rfc": "RFC4592 wildcards",
+          "severity": "info",
+          "title": "Wildcard coverage"
+        },
+        {
+          "corrective_action": "Keep AXFR locked down. Re-test after nameserver changes.",
+          "finding_id": "RFC-AXFR-014",
+          "mitre": "T1590.002",
+          "observation": "AXFR against ns-cloud-b1.googledomains.com was refused (IANA RCODE REFUSED).",
+          "result": "pass",
+          "rfc": "RFC5936 AXFR",
+          "severity": "info",
+          "title": "AXFR exposure"
+        }
+      ],
+      "title": "Manage network and connectivity security"
+    },
+    {
+      "conclusion": "partially effective",
+      "control_id": "DSS01.03",
+      "test_procedure": "Query each NS for SOA+AA (lame delegation) and IANA RCODE health.",
+      "tests": [
+        {
+          "corrective_action": "Add a secondary on a different DNS operator so a single vendor outage cannot hide the zone.",
+          "finding_id": "IANA-NS-002",
+          "mitre": "T1583.002",
+          "observation": "Multiple NS records exist but they appear to share one third-party provider label.",
+          "result": "warning",
+          "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+          "severity": "medium",
+          "title": "Name server architecture"
+        },
+        {
+          "corrective_action": "No lame-delegation change required.",
+          "finding_id": "RFC-LAME-015",
+          "mitre": "T1498",
+          "observation": "Every listed NS answered SOA with AA set.",
+          "result": "pass",
+          "rfc": "RFC1034 lame delegation; RFC2182",
+          "severity": "info",
+          "title": "Lame delegation"
+        },
+        {
+          "corrective_action": "Keep NS glue in sync when addresses change.",
+          "finding_id": "RFC-GLUE-016",
+          "mitre": "T1590.002",
+          "observation": "No in-bailiwick NS names, so child-side glue is not required at this apex.",
+          "result": "pass",
+          "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+          "severity": "info",
+          "title": "In-bailiwick NS glue / address"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        }
+      ],
+      "title": "Monitor IT infrastructure"
+    },
+    {
+      "conclusion": "partially effective",
+      "control_id": "DSS04.03",
+      "test_procedure": "Test NS architecture, glue, and dual-stack addressing.",
+      "tests": [
+        {
+          "corrective_action": "Add a secondary on a different DNS operator so a single vendor outage cannot hide the zone.",
+          "finding_id": "IANA-NS-002",
+          "mitre": "T1583.002",
+          "observation": "Multiple NS records exist but they appear to share one third-party provider label.",
+          "result": "warning",
+          "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+          "severity": "medium",
+          "title": "Name server architecture"
+        },
+        {
+          "corrective_action": "No lame-delegation change required.",
+          "finding_id": "RFC-LAME-015",
+          "mitre": "T1498",
+          "observation": "Every listed NS answered SOA with AA set.",
+          "result": "pass",
+          "rfc": "RFC1034 lame delegation; RFC2182",
+          "severity": "info",
+          "title": "Lame delegation"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        }
+      ],
+      "title": "Continuity of essential services"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "BAI10.02",
+      "test_procedure": "Record SOA serial, CAA, and CNAME targets as configuration evidence.",
+      "tests": [
+        {
+          "corrective_action": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+          "finding_id": "RFC-SOA-001",
+          "mitre": "T1584.002",
+          "observation": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+          "result": "pass",
+          "rfc": "RFC1035 §3.3.13",
+          "severity": "info",
+          "title": "SOA authority record"
+        },
+        {
+          "corrective_action": "Keep NS glue in sync when addresses change.",
+          "finding_id": "RFC-GLUE-016",
+          "mitre": "T1590.002",
+          "observation": "No in-bailiwick NS names, so child-side glue is not required at this apex.",
+          "result": "pass",
+          "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+          "severity": "info",
+          "title": "In-bailiwick NS glue / address"
+        },
+        {
+          "corrective_action": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+          "finding_id": "RFC-CNAME-017",
+          "mitre": "T1584.001",
+          "observation": "No dangling CNAME on apex or www from this vantage point.",
+          "result": "pass",
+          "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+          "severity": "info",
+          "title": "Dangling CNAME"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-CAA-010",
+          "mitre": "T1588.004",
+          "observation": "CAA policy is published.",
+          "result": "pass",
+          "rfc": "RFC8659",
+          "severity": "info",
+          "title": "CAA certificate issuance policy"
+        }
+      ],
+      "title": "Manage configuration changes"
+    },
+    {
+      "conclusion": "effective",
+      "control_id": "BAI09.01",
+      "test_procedure": "Identify dangling CNAME and stale delegation records.",
+      "tests": [
+        {
+          "corrective_action": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+          "finding_id": "RFC-CNAME-017",
+          "mitre": "T1584.001",
+          "observation": "No dangling CNAME on apex or www from this vantage point.",
+          "result": "pass",
+          "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+          "severity": "info",
+          "title": "Dangling CNAME"
+        }
+      ],
+      "title": "Manage assets"
+    },
+    {
+      "conclusion": "partially effective",
+      "control_id": "APO12.02",
+      "test_procedure": "Map residual DNS risk to MITRE ATT&CK and SANS classes.",
+      "tests": [
+        {
+          "corrective_action": "",
+          "finding_id": "RFC-MX-004",
+          "mitre": "T1590.002",
+          "observation": "MX records are published.",
+          "result": "pass",
+          "rfc": "RFC1035 MX; RFC7505 null MX",
+          "severity": "info",
+          "title": "Mail exchanger set"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-FLUX-008",
+          "mitre": "T1568.001",
+          "observation": "All observed address TTLs are under 60 seconds. Fast-flux botnets use this pattern; CDNs can as well.",
+          "result": "warning",
+          "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+          "severity": "medium",
+          "title": "Address TTL fast-flux signal"
+        }
+      ],
+      "title": "Risk analysis"
+    },
+    {
+      "conclusion": "partially effective",
+      "control_id": "MEA01.03",
+      "test_procedure": "Export scored findings and change-required statements.",
+      "tests": [
+        {
+          "corrective_action": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+          "finding_id": "RFC-SOA-001",
+          "mitre": "T1584.002",
+          "observation": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+          "result": "pass",
+          "rfc": "RFC1035 §3.3.13",
+          "severity": "info",
+          "title": "SOA authority record"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "MITRE-T1071-006",
+          "mitre": "T1071.004",
+          "observation": "Long high-entropy TXT data at apex. Treat as a T1071.004 review item (possible tunneling/payload abuse), not proof of compromise.",
+          "result": "warning",
+          "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+          "severity": "medium",
+          "title": "DNS application-layer abuse heuristic"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "IANA-RCODE-011",
+          "mitre": "T1498",
+          "observation": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+          "result": "pass",
+          "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+          "severity": "info",
+          "title": "IANA RCODE health"
+        },
+        {
+          "corrective_action": "",
+          "finding_id": "SANS-NX-012",
+          "mitre": "T1565",
+          "observation": "Resolver returned NXDOMAIN as expected.",
+          "result": "pass",
+          "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+          "severity": "info",
+          "title": "NXDOMAIN integrity"
+        }
+      ],
+      "title": "Monitor, evaluate and assess performance"
+    }
+  ],
+  "engagement": {
+    "fault_score": 60,
+    "posture": "exposed",
+    "procedure": "Independent DNS control test using RFC/IANA observations mapped to COBIT management objectives.",
+    "subject": "spacex.com"
+  },
+  "schema": "whitedns.isaca.workpaper.v1",
+  "source_audit": {
+    "domain": "spacex.com",
+    "fault_score": 60,
+    "findings": [
+      {
+        "change_required": "No zone-authority change required. Monitor SOA serial for unexpected jumps.",
+        "evidence": {
+          "soa": [
+            "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-SOA-001",
+        "isaca": "ISACA COBIT BAI10 Change Management; MEA01 Performance Monitoring",
+        "message": "SOA present. Serial and primary nameserver metadata can be used for change and lame-delegation fault finding.",
+        "mitre": {
+          "id": "T1584.002",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1035 §3.3.13",
+        "sans_class": "SANS: zone integrity / unauthorized DNS change monitoring",
+        "severity": "info",
+        "status": "pass",
+        "title": "SOA authority record"
+      },
+      {
+        "change_required": "Add a secondary on a different DNS operator so a single vendor outage cannot hide the zone.",
+        "evidence": {
+          "ns": [
+            "ns-cloud-b1.googledomains.com",
+            "ns-cloud-b2.googledomains.com",
+            "ns-cloud-b3.googledomains.com",
+            "ns-cloud-b4.googledomains.com"
+          ],
+          "provider_labels": 1
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "IANA-NS-002",
+        "isaca": "ISACA COBIT DSS01 Operations; DSS04 Continuity",
+        "message": "Multiple NS records exist but they appear to share one third-party provider label.",
+        "mitre": {
+          "id": "T1583.002",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1035 NS; RFC2182 selection and operation of secondary DNS servers",
+        "sans_class": "SANS ISC: distinct / diverse authoritative servers",
+        "severity": "medium",
+        "status": "warning",
+        "title": "Name server architecture"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "a": [
+            "104.18.26.217",
+            "104.18.27.217"
+          ],
+          "aaaa": [
+            "2606:4700::6812:1ad9",
+            "2606:4700::6812:1bd9"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-ADDR-003",
+        "isaca": "ISACA COBIT DSS05 Managed Security Services",
+        "message": "Address records are present.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1035 A; RFC3596 AAAA",
+        "sans_class": "SANS: resolution integrity and availability",
+        "severity": "info",
+        "status": "pass",
+        "title": "A / AAAA addressing"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "mx": [
+            "mxa-003ea501.gslb.gpphosted.com (pref 5)",
+            "mxb-003ea501.gslb.gpphosted.com (pref 5)"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-MX-004",
+        "isaca": "ISACA COBIT DSS05; APO12 Risk",
+        "message": "MX records are published.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1035 MX; RFC7505 null MX",
+        "sans_class": "SANS: infrastructure enumeration and hijack surface",
+        "severity": "info",
+        "status": "pass",
+        "title": "Mail exchanger set"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "dmarc": true,
+          "spf": true
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-MAILAUTH-005",
+        "isaca": "ISACA COBIT DSS05.02 Manage network and connectivity security; APO13 Security",
+        "message": "SPF and DMARC policy records are present.",
+        "mitre": {
+          "id": "T1586",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC7208 SPF; RFC7489 DMARC",
+        "sans_class": "SANS: DNS as a security control plane (policy records)",
+        "severity": "info",
+        "status": "pass",
+        "title": "SPF and DMARC policy in DNS"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "long_txt": true,
+          "max_txt_entropy": "5.484722"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "MITRE-T1071-006",
+        "isaca": "ISACA COBIT DSS05.07 Monitor security; MEA01",
+        "message": "Long high-entropy TXT data at apex. Treat as a T1071.004 review item (possible tunneling/payload abuse), not proof of compromise.",
+        "mitre": {
+          "id": "T1071.004",
+          "tactic": "Command and Control"
+        },
+        "rfc": "RFC1035 TXT; RFC6891 EDNS0 size considerations",
+        "sans_class": "SANS: DNS tunneling / covert channel review",
+        "severity": "medium",
+        "status": "warning",
+        "title": "DNS application-layer abuse heuristic"
+      },
+      {
+        "change_required": "No poisoning change required. Continue multi-resolver monitoring.",
+        "evidence": {
+          "exact_disagreement": false,
+          "poison_signal": false,
+          "resolver_count": 1
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-POISON-007",
+        "isaca": "ISACA COBIT DSS05; MEA02 Internal control monitoring",
+        "message": "Compared resolvers returned a consistent A set for this vantage point.",
+        "mitre": {
+          "id": "T1557",
+          "tactic": "Credential Access / Collection (adversary-in-the-middle class)"
+        },
+        "rfc": "RFC5452 measures against cache poisoning; RFC1034 resolution",
+        "sans_class": "SANS: cache poisoning and DNS hijacking",
+        "severity": "info",
+        "status": "pass",
+        "title": "Multi-resolver A-record consistency"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "sample_ttl_count": 4
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-FLUX-008",
+        "isaca": "ISACA COBIT DSS05; APO12",
+        "message": "All observed address TTLs are under 60 seconds. Fast-flux botnets use this pattern; CDNs can as well.",
+        "mitre": {
+          "id": "T1568.001",
+          "tactic": "Command and Control"
+        },
+        "rfc": "RFC1035 TTL; RFC2181 TTL consistency",
+        "sans_class": "SANS: fast-flux detection",
+        "severity": "medium",
+        "status": "warning",
+        "title": "Address TTL fast-flux signal"
+      },
+      {
+        "change_required": "Publish DS at the parent that hashes the current KSK, or repair DNSKEY publication. Presence-only DNSSEC is not enough.",
+        "evidence": {
+          "backend": "openssl",
+          "cryptographic_ds_match": false,
+          "dnskey_count": 0,
+          "dnskey_present": false,
+          "ds_count": 0,
+          "ds_present": false,
+          "rfc": "RFC4034 §5.1.4 DS digest over owner|DNSKEY RDATA"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-DNSSEC-009",
+        "isaca": "ISACA COBIT DSS05.02; NIST-aligned SC-20/SC-21 via COBIT DSS05",
+        "message": "Cannot validate the parent chain: DS or DNSKEY RDATA is missing.",
+        "mitre": {
+          "id": "T1557",
+          "tactic": "Adversary-in-the-middle class"
+        },
+        "rfc": "RFC4033/4034/4035",
+        "sans_class": "SANS Ed Skoudis: deploy DNSSEC signing and validation together",
+        "severity": "medium",
+        "status": "warning",
+        "title": "DNSSEC cryptographic parent chain"
+      },
+      {
+        "change_required": "No lame-delegation change required.",
+        "evidence": {
+          "servers": [
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "ns-cloud-b1.googledomains.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "ns-cloud-b2.googledomains.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "ns-cloud-b3.googledomains.com",
+              "rcode": "NOERROR"
+            },
+            {
+              "aa": true,
+              "answers": 1,
+              "error": "",
+              "lame": false,
+              "ns": "ns-cloud-b4.googledomains.com",
+              "rcode": "NOERROR"
+            }
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-LAME-015",
+        "isaca": "ISACA COBIT DSS01 Operations; DSS04 Continuity",
+        "message": "Every listed NS answered SOA with AA set.",
+        "mitre": {
+          "id": "T1498",
+          "tactic": "Impact"
+        },
+        "rfc": "RFC1034 lame delegation; RFC2182",
+        "sans_class": "SANS ISC: authoritative server health",
+        "severity": "info",
+        "status": "pass",
+        "title": "Lame delegation"
+      },
+      {
+        "change_required": "Keep NS glue in sync when addresses change.",
+        "evidence": {
+          "ns": []
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-GLUE-016",
+        "isaca": "ISACA COBIT DSS01; BAI10",
+        "message": "No in-bailiwick NS names, so child-side glue is not required at this apex.",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC1034 glue; RFC4472 IPv6 glue",
+        "sans_class": "SANS: delegation integrity",
+        "severity": "info",
+        "status": "pass",
+        "title": "In-bailiwick NS glue / address"
+      },
+      {
+        "change_required": "Re-check CNAMEs when a SaaS or CDN target is retired.",
+        "evidence": {
+          "cnames": [
+            {
+              "dangling": false,
+              "owner": "www.spacex.com",
+              "target": "www.spacex.com.cdn.cloudflare.net",
+              "target_rcode": "NOERROR"
+            }
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-CNAME-017",
+        "isaca": "ISACA COBIT BAI09 assets; BAI10 change",
+        "message": "No dangling CNAME on apex or www from this vantage point.",
+        "mitre": {
+          "id": "T1584.001",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC1034 CNAME; RFC1912 data hygiene",
+        "sans_class": "SANS: stale DNS / dangling records",
+        "severity": "info",
+        "status": "pass",
+        "title": "Dangling CNAME"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "caa": [
+            "CAA flags=0 tag=issue value=amazon.com",
+            "CAA flags=0 tag=issue value=digicert.com",
+            "CAA flags=0 tag=issue value=globalsign.com",
+            "CAA flags=0 tag=issue value=letsencrypt.org",
+            "CAA flags=0 tag=issue value=pki.goog"
+          ]
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-CAA-010",
+        "isaca": "ISACA COBIT DSS05; BAI10",
+        "message": "CAA policy is published.",
+        "mitre": {
+          "id": "T1588.004",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC8659",
+        "sans_class": "SANS: monitor certificates associated with the organization",
+        "severity": "info",
+        "status": "pass",
+        "title": "CAA certificate issuance policy"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "formerr": 0,
+          "noerror": 21,
+          "refused": 0,
+          "servfail": 0
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "IANA-RCODE-011",
+        "isaca": "ISACA COBIT DSS01; DSS04; MEA01",
+        "message": "Most answers used IANA RCODE NOERROR. Other RCODEs were within expected query mix.",
+        "mitre": {
+          "id": "T1498",
+          "tactic": "Impact (availability)"
+        },
+        "rfc": "RFC1035 RCODE; RFC6895 IANA considerations",
+        "sans_class": "SANS ISC: monitor domains and resolver health",
+        "severity": "info",
+        "status": "pass",
+        "title": "IANA RCODE health"
+      },
+      {
+        "change_required": "",
+        "evidence": {
+          "analyzer": "nxdomain_redirect"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-NX-012",
+        "isaca": "ISACA COBIT DSS05; MEA01",
+        "message": "Resolver returned NXDOMAIN as expected.",
+        "mitre": {
+          "id": "T1565",
+          "tactic": "Impact"
+        },
+        "rfc": "RFC1035 NXDOMAIN; RFC8020 NXDOMAIN convention",
+        "sans_class": "SANS: NXDOMAIN flood / redirection and resolver integrity",
+        "severity": "info",
+        "status": "pass",
+        "title": "NXDOMAIN integrity"
+      },
+      {
+        "change_required": "",
+        "evidence": {},
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "SANS-WILD-013",
+        "isaca": "ISACA COBIT DSS05",
+        "message": "Random subdomain did not resolve.",
+        "mitre": {
+          "id": "T1584.001",
+          "tactic": "Resource Development"
+        },
+        "rfc": "RFC4592 wildcards",
+        "sans_class": "SANS: wildcard and catch-all resolution surface",
+        "severity": "info",
+        "status": "pass",
+        "title": "Wildcard coverage"
+      },
+      {
+        "change_required": "Keep AXFR locked down. Re-test after nameserver changes.",
+        "evidence": {
+          "error": "",
+          "rcode": "REFUSED",
+          "target": "ns-cloud-b1.googledomains.com"
+        },
+        "iana": "IANA DNS Parameters RR TYPE / RCODE registries",
+        "id": "RFC-AXFR-014",
+        "isaca": "ISACA COBIT DSS05.02 least functionality of name service",
+        "message": "AXFR against ns-cloud-b1.googledomains.com was refused (IANA RCODE REFUSED).",
+        "mitre": {
+          "id": "T1590.002",
+          "tactic": "Reconnaissance"
+        },
+        "rfc": "RFC5936 AXFR",
+        "sans_class": "SANS: zone transfer leakage / reconnaissance",
+        "severity": "info",
+        "status": "pass",
+        "title": "AXFR exposure"
+      }
+    ],
+    "frameworks": {
+      "iana": "IANA DNS Parameters",
+      "isaca": "COBIT 2019 DSS05/APO12/BAI10/MEA01 mapped control language",
+      "mitre_attack": "MITRE ATT&CK Enterprise DNS-related techniques",
+      "rfc": "RFC 1034/1035 plus record-specific RFCs",
+      "sans": "SANS Institute DNS attack classes and ISC operational checklists"
+    },
+    "posture": "exposed",
+    "queries": [
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "SOA",
+            "value": "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 118,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 4,
+        "answers": [
+          {
+            "ttl": 21597,
+            "type": "NS",
+            "value": "ns-cloud-b4.googledomains.com"
+          },
+          {
+            "ttl": 21597,
+            "type": "NS",
+            "value": "ns-cloud-b3.googledomains.com"
+          },
+          {
+            "ttl": 21597,
+            "type": "NS",
+            "value": "ns-cloud-b2.googledomains.com"
+          },
+          {
+            "ttl": 21597,
+            "type": "NS",
+            "value": "ns-cloud-b1.googledomains.com"
+          }
+        ],
+        "architecture_role": "delegation",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "NS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 146,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 14,
+            "type": "A",
+            "value": "104.18.26.217"
+          },
+          {
+            "ttl": 14,
+            "type": "A",
+            "value": "104.18.27.217"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 60,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 30,
+            "type": "AAAA",
+            "value": "2606:4700::6812:1bd9"
+          },
+          {
+            "ttl": 30,
+            "type": "AAAA",
+            "value": "2606:4700::6812:1ad9"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AAAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 84,
+        "rfc": "RFC3596",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 30,
+            "type": "MX",
+            "value": "mxb-003ea501.gslb.gpphosted.com (pref 5)"
+          },
+          {
+            "ttl": 30,
+            "type": "MX",
+            "value": "mxa-003ea501.gslb.gpphosted.com (pref 5)"
+          }
+        ],
+        "architecture_role": "mail-exchange",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "MX",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 101,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 21,
+        "answers": [
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "apple-domain-verification=CU99PbnQj7UXnmWi"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "adobe-idp-site-verification=97fe9cbe45f7936353e717f88486fcad77d04e2cc65312bbf40da31883227465"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "adeptat-domain-verification=bZMk5ldxu1wFFYpgKuExttuiPraKrPexzuZauJvE"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "cisco-ci-domain-verification=236aab1dcf7007f2b6c9e8f16e541b4dadc3be19ca2f88c034dc75531327cad8"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "stripe-verification=1E214CE588837E638F2D46AB2A2790B0A51F74D94E1DA8BA6758E32F1D7457BD"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "autodesk-domain-verification=jOFrO72SJC9U9y0WfVv3"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "bluebeam-verification=ybgg1g1h0i293tewr0gia6t9bndnlr"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "zqgtz1gl80bvk19hn02dy51gz592fhpf"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "smartsheet-gov-site-validation=5cZs1XJeR9JG8Q9MWZRln5PJ_RLjXjhj"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "6QDSR1iPUpF8QnDs/ERveO9hf/xVc75idTlfMNcmvbhPz95AJK5wyNWMiOfz40Ko58TqC/IFofEdm12xINJKOA=="
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "google-site-verification=HEGwcQwzYMM_y6dwOMoyKNtRi1Fnq4ogrhx9G8aJ5FU"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "stripe-verification=1C2B00FD0AF495B8CCC0CB8F533A38544C0199B7A83F306D3D0F63F45AAEC793"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "7WDkmgY8hyFOAp9T8d5mA6w5Bf5DVOq8Y5BNaQmQ+iy/OY1lxkTpt1AAs/o44cx5dmxeXGVl0ba5T2abaxRuQg=="
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "atlassian-domain-verification=ppDBYYiz7xEIHo3t4qYTnznDkQkbtHi1WeWw9eyuRwqsdDXQHSDnaQyzPVXfOE/g"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "stripe-verification=3ED727F096BBACAB23D580714E31388A78D642316D6F86502DC6051A8F528C98"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "MS=ms70688094"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "DirectFedAuthUrl=https://auth.spacex.com"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "v=spf1 include:spf-a.spacex.com include:spf-b.spacex.com include:icpbounce.com include:_spf.qemailserver.com include:spf.mandrillapp.com include:spf.protection.office365.us include:spf-003ea501.gpphosted.com include:42559228.spf07.hubspotemail.net -all"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "canva-site-verification=UxpT4tgSgT1xAINsHsHGKg"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "fadv-verification-3a01b9945b7b4369a5d19e95d33bb880"
+          },
+          {
+            "ttl": 1,
+            "type": "TXT",
+            "value": "pexip-ms-tenant-domain-verification=dc4dccf7-f034-4180-822d-4da377309371"
+          }
+        ],
+        "architecture_role": "policy-or-payload",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "TXT",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 1855,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "alias",
+        "authority_count": 1,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 118,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 5,
+        "answers": [
+          {
+            "ttl": 3600,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=digicert.com"
+          },
+          {
+            "ttl": 3600,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=globalsign.com"
+          },
+          {
+            "ttl": 3600,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=letsencrypt.org"
+          },
+          {
+            "ttl": 3600,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=amazon.com"
+          },
+          {
+            "ttl": 3600,
+            "type": "CAA",
+            "value": "CAA flags=0 tag=issue value=pki.goog"
+          }
+        ],
+        "architecture_role": "certificate-binding",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CAA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 182,
+        "rfc": "RFC8659",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 1,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DNSKEY",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 129,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 6,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 568,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 1,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "RRSIG",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 129,
+        "rfc": "RFC4034",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 300,
+            "type": "TXT",
+            "value": "v=DMARC1; p=reject; fo=1; rua=mailto:dmarc_rua@emaildefense.proofpoint.com,mailto:re+9db8aed802f8@inbound.dmarcdigests.com; ruf=mailto:dmarc_ruf@emaildefense.proofpoint.com; aspf=r"
+          }
+        ],
+        "architecture_role": "policy-or-payload",
+        "authority_count": 0,
+        "domain": "_dmarc.spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "TXT",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 228,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 584,
+            "type": "DS",
+            "value": "a.gtld-servers.net. nstld.verisign-grs.com. 1789651673 1800 900 604800 900"
+          },
+          {
+            "ttl": 584,
+            "type": "SOA",
+            "value": "a.gtld-servers.net. nstld.verisign-grs.com. 1789651673 1800 900 604800 900"
+          }
+        ],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DS",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 0,
+        "rfc": "RFC4034",
+        "server": "https://dns.google/resolve?name=spacex.com&type=DS",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 300,
+            "type": "DNSKEY",
+            "value": "ns-cloud-b1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300"
+          },
+          {
+            "ttl": 300,
+            "type": "SOA",
+            "value": "ns-cloud-b1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300"
+          }
+        ],
+        "architecture_role": "dnssec-integrity",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "DNSKEY",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 0,
+        "rfc": "RFC4034",
+        "server": "https://dns.google/resolve?name=spacex.com&type=DNSKEY",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "SOA",
+            "value": "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 4,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 210,
+        "rfc": "RFC1035",
+        "server": "ns-cloud-b1.googledomains.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "SOA",
+            "value": "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 4,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 210,
+        "rfc": "RFC1035",
+        "server": "ns-cloud-b2.googledomains.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "SOA",
+            "value": "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 4,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 210,
+        "rfc": "RFC1035",
+        "server": "ns-cloud-b3.googledomains.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 21600,
+            "type": "SOA",
+            "value": "SOA ns-cloud-b1.googledomains.com cloud-dns-hostmaster.google.com serial 1"
+          }
+        ],
+        "architecture_role": "zone-authority",
+        "authority_count": 4,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "SOA",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 210,
+        "rfc": "RFC1035",
+        "server": "ns-cloud-b4.googledomains.com",
+        "truncated": false
+      },
+      {
+        "answer_count": 1,
+        "answers": [
+          {
+            "ttl": 1,
+            "type": "CNAME",
+            "value": "www.spacex.com.cdn.cloudflare.net"
+          }
+        ],
+        "architecture_role": "alias",
+        "authority_count": 0,
+        "domain": "www.spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 79,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "alias",
+        "authority_count": 1,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "CNAME",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 118,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 2,
+        "answers": [
+          {
+            "ttl": 300,
+            "type": "A",
+            "value": "104.18.26.217"
+          },
+          {
+            "ttl": 300,
+            "type": "A",
+            "value": "104.18.27.217"
+          }
+        ],
+        "architecture_role": "addressing",
+        "authority_count": 0,
+        "domain": "www.spacex.com.cdn.cloudflare.net",
+        "error": false,
+        "error_message": "",
+        "query_type": "A",
+        "rcode": 0,
+        "rcode_name": "NOERROR",
+        "response_size": 83,
+        "rfc": "RFC1035",
+        "server": "8.8.8.8",
+        "truncated": false
+      },
+      {
+        "answer_count": 0,
+        "answers": [],
+        "architecture_role": "zone-replication",
+        "authority_count": 0,
+        "domain": "spacex.com",
+        "error": false,
+        "error_message": "",
+        "query_type": "AXFR",
+        "rcode": 5,
+        "rcode_name": "REFUSED",
+        "response_size": 28,
+        "rfc": "RFC5936",
+        "server": "ns-cloud-b1.googledomains.com",
+        "truncated": false
+      }
+    ],
+    "schema": "whitedns.framework.v1",
+    "tool": "WhiteDNS"
+  },
+  "standard": "ISACA COBIT 2019",
+  "tool": "WhiteDNS"
+}

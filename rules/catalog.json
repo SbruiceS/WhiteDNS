@@ -1,0 +1,37 @@
+{
+  "schema": "whitedns.rules.v1",
+  "owner": "Cosinfotech Solutions",
+  "author": "S. Bruice Singh",
+  "rules": [
+    {
+      "id": "WDNS-DNSSEC-001",
+      "version": 1,
+      "severity": "medium",
+      "confidence": "high",
+      "class": "ANOMALY",
+      "description": "DS digest does not match any DNSKEY at the child.",
+      "remediation": "Publish a parent DS that hashes the current KSK.",
+      "references": ["RFC4034", "SANS-DNSSEC"]
+    },
+    {
+      "id": "WDNS-DELEG-001",
+      "version": 1,
+      "severity": "high",
+      "confidence": "high",
+      "class": "ANOMALY",
+      "description": "Listed NS did not answer SOA with AA set.",
+      "remediation": "Repair or remove the lame nameserver.",
+      "references": ["RFC1034", "RFC2182"]
+    },
+    {
+      "id": "WDNS-CNAME-001",
+      "version": 1,
+      "severity": "medium",
+      "confidence": "medium",
+      "class": "SUSPICIOUS",
+      "description": "CNAME target does not resolve.",
+      "remediation": "Remove or retarget the dangling CNAME.",
+      "references": ["RFC1034", "RFC1912"]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320" role="img" aria-labelledby="title desc">
+  <title id="title">WhiteDNS Logo</title>
+  <desc id="desc">Simple WhiteDNS shield logo with network nodes.</desc>
+  <rect width="960" height="320" rx="28" fill="#0b1117"/>
+  <g transform="translate(88 50)">
+    <path d="M110 0 220 42v74c0 70-45 133-110 154C45 249 0 186 0 116V42Z" fill="#f8fafc"/>
+    <path d="M110 28 190 58v58c0 54-32 101-80 121-48-20-80-67-80-121V58Z" fill="#0ea5a4"/>
+    <circle cx="110" cy="88" r="18" fill="#f8fafc"/>
+    <circle cx="70" cy="140" r="14" fill="#f8fafc"/>
+    <circle cx="150" cy="140" r="14" fill="#f8fafc"/>
+    <path d="M110 106v38M84 136l32-30M136 136l-32-30" fill="none" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="350" y="145" fill="#f8fafc" font-family="Segoe UI, Arial, sans-serif" font-size="74" font-weight="800" letter-spacing="0">WhiteDNS</text>
+  <text x="354" y="198" fill="#7dd3fc" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500" letter-spacing="0">DNS Security Analysis</text>
+  <text x="354" y="238" fill="#94a3b8" font-family="Segoe UI, Arial, sans-serif" font-size="22" letter-spacing="0">by Sbruice Singh</text>
+</svg>
