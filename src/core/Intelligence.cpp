@@ -6,8 +6,13 @@
 #include "whitedns/core/TrafficPack.h"
 
 #include <cmath>
+#include <iostream>
 #include <map>
 #include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace whitedns {
 namespace core {
