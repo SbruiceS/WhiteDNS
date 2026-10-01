@@ -37,7 +37,14 @@ cmake --build build --config Release
 .\build\Release\whitedns.exe --help
 ```
 
-Needs a C++17 compiler and CMake. OpenSSL is used for DNSSEC digests and ODoH when it is present.
+Needs a C++17 compiler and CMake. OpenSSL is detected automatically. If it is installed, DNSSEC signature checks and ODoH link against it. If it is not, the build still succeeds and `whitedns doctor` says signature verify is off.
+
+```bash
+# Debian, Ubuntu, Termux
+pkg install openssl-dev || sudo apt install libssl-dev
+# Fedora
+sudo dnf install openssl-devel
+```
 
 ## Use
 

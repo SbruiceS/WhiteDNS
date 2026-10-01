@@ -39,8 +39,11 @@ target_include_directories(whitedns PRIVATE include)
 
 find_package(OpenSSL)
 if(OpenSSL_FOUND)
+  message(STATUS "WhiteDNS: OpenSSL ${OPENSSL_VERSION} found. DNSSEC signature verify and ODoH will link.")
   target_link_libraries(whitedns PRIVATE OpenSSL::SSL OpenSSL::Crypto)
   target_compile_definitions(whitedns PRIVATE WHITEDNS_HAVE_OPENSSL)
+else()
+  message(WARNING "WhiteDNS: OpenSSL not found. Build continues. DS digest and RRSIG byte verify stay off. Install libssl-dev (Debian/Ubuntu/Termux), openssl-devel (Fedora), or OpenSSL on Windows, then reconfigure.")
 endif()
 
 add_executable(whitedns_test_wire tests/test_wire.cpp src/core/Wire.cpp src/DnsClient.cpp)
