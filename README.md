@@ -19,7 +19,7 @@
   Cosinfotech Solutions · S. Bruice Singh
 </p>
 
-Use only on names and resolvers you are allowed to query. This is an assessment tool for operators, incident response, and authorized tests. It does not send amplification, zone transfer, or dynamic update traffic.
+License: use only. No changes to the source. See LICENSE.
 
 ## Install
 

@@ -1,21 +1,38 @@
-MIT License
+WHITE DNS SOFTWARE LICENSE
+Cosinfotech Solutions
+Copyright (c) 2026 Cosinfotech Solutions. Author: S. Bruice Singh.
 
-Copyright (c) 2025 Sbruice Singh
+This license covers the WhiteDNS program, its source, binaries, documentation, and related files in this repository ("Software").
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Grant
+Cosinfotech Solutions grants you a personal, non-exclusive, non-transferable, revocable right to install and run the Software for authorized DNS administration, incident response, and security assessment of names and resolvers you are allowed to query.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. No changes
+You may not modify, adapt, translate, or create derivative works of the Software. You may not remove or alter copyright, license, or author notices.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. No redistribution of changed copies
+You may not publish, sell, sublicense, or distribute a changed copy. An unchanged copy may be shared only with this license file intact, and only if Cosinfotech Solutions has not withdrawn that permission.
+
+4. No attack use
+You may not use the Software to send amplification, spoofed queries, zone-transfer dumps, dynamic updates, or any other traffic against systems you are not allowed to query.
+
+5. Ownership
+The Software remains the property of Cosinfotech Solutions. This license is a right to use, not a sale of the Software.
+
+6. No warranty
+The Software is provided "as is", without warranty of any kind, express or implied, including fitness for a particular purpose and non-infringement. DNS results are observations, not proof of compromise.
+
+7. Liability
+To the extent allowed by law, Cosinfotech Solutions is not liable for loss of data, service interruption, or other damages arising from use of the Software.
+
+8. Termination
+This license ends if you breach it. On termination you must stop using the Software and delete copies in your control.
+
+9. Law
+These terms are governed by the laws of India. Courts at Varanasi, Uttar Pradesh, have jurisdiction, subject to any mandatory rule that cannot be waived.
+
+10. Contact
+Cosinfotech Solutions
+sbruicesingh@haclon.in
+
+These terms are a statement by the copyright holder. They are not a substitute for advice from a lawyer in your jurisdiction.
