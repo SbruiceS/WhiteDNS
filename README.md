@@ -1,9 +1,5 @@
 <p align="center">
-  <img src="logo/banner.svg" alt="WhiteDNS banner" width="100%" />
-</p>
-
-<p align="center">
-  <img src="logo/whitedns.png" alt="WhiteDNS mark" width="280" />
+  <img src="logo/whitedns.png" alt="WhiteDNS — Detect · Analyze · Secure · Explore" width="420" />
 </p>
 
 <h1 align="center">WhiteDNS</h1>
