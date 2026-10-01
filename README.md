@@ -19,7 +19,7 @@
   Cosinfotech Solutions · S. Bruice Singh
 </p>
 
-Use only on domains and resolvers you are allowed to query.
+Use only on names and resolvers you are allowed to query. This is an assessment tool for operators, incident response, and authorized tests. It does not send amplification, zone transfer, or dynamic update traffic.
 
 ## Install
 
@@ -80,6 +80,7 @@ whitedns doctor
 | `report` | Security and graph |
 | `dga` | Lexical screen |
 | `wire-check` | Strict parser self-test |
+| `assess` | DNSSEC, poison gates, and faults on an authorized name |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |

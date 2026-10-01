@@ -75,6 +75,7 @@ enum class Command {
     Report,
     Dga,
     WireCheck,
+    Assess,
     Unknown
 };
 
@@ -382,7 +383,8 @@ void print_usage() {
     std::cout << style("  report", GREEN) << "       security and graph together\n";
     std::cout << style("  doctor", YELLOW) << "       pipeline self-check\n";
     std::cout << style("  dga", MAGENTA) << "          lexical screen, fixture accuracy printed\n";
-    std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n\n";
+    std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n";
+    std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n\n";
     std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
     std::cout << "Global options:\n";
     std::cout << "  -h, --help      Show help\n";
@@ -930,7 +932,7 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Arch || opt.command == Command::Graph ||
                   opt.command == Command::Security || opt.command == Command::Doctor ||
                   opt.command == Command::Report || opt.command == Command::Dga ||
-                  opt.command == Command::WireCheck;
+                  opt.command == Command::WireCheck || opt.command == Command::Assess;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -938,6 +940,20 @@ int main(int argc, char* argv[]) {
         }
         if (opt.command == Command::WireCheck) {
             return core::run_protocol_selftest(std::cout);
+        }
+        if (opt.command == Command::Assess) {
+            if (opt.domain.empty()) {
+                std::cerr << "Name required. Authorized names only.\n";
+                return 1;
+            }
+            std::cout << "WhiteDNS assessment  " << opt.domain << "\n";
+            std::cout << "Authorized use only. No amplification, no zone dump, no update.\n";
+            auto path = core::run_dnssec_path(opt.domain, "8.8.8.8");
+            core::print_dnssec_path(path);
+            auto poison = core::run_poison_classifier(opt.domain, {});
+            core::print_poison_classifier(poison);
+            core::run_print_faults(opt.domain);
+            return 0;
         }
         if (opt.command == Command::Dga) {
             core::print_dga(opt.domain.empty() ? "unset" : opt.domain);
