@@ -77,15 +77,46 @@ bool read_name(const std::vector<uint8_t>& p, size_t& off, std::string& out, Pro
     return false;
 }
 
-std::string note_rdata(uint16_t type, const std::vector<uint8_t>& rd) {
+std::string note_rdata(uint16_t type, const std::vector<uint8_t>& rd, const std::vector<uint8_t>&, size_t rd_at, ProtoView& v) {
     std::ostringstream o;
     o << "type=" << type << " rdlen=" << rd.size();
     if (type == 1 && rd.size() == 4)
         o << " A " << int(rd[0]) << "." << int(rd[1]) << "." << int(rd[2]) << "." << int(rd[3]);
     else if (type == 28 && rd.size() == 16)
         o << " AAAA";
-    else if (type == 16)
-        o << " TXT strings";
+    else if (type == 15 && rd.size() >= 2)
+        o << " MX pref=" << ((rd[0] << 8) | rd[1]);
+    else if (type == 16) {
+        size_t i = 0;
+        int strings = 0;
+        while (i < rd.size()) {
+            uint8_t n = rd[i++];
+            if (i + n > rd.size()) {
+                v.findings.push_back({"InvalidRData", rd_at, "TXT string overruns rdlen"});
+                break;
+            }
+            i += n;
+            strings++;
+        }
+        o << " TXT strings=" << strings;
+    } else if (type == 6 && rd.size() >= 20)
+        o << " SOA";
+    else if (type == 257 && rd.size() >= 2)
+        o << " CAA taglen=" << int(rd[0]);
+    else if (type == 33 && rd.size() >= 6)
+        o << " SRV port=" << ((rd[4] << 8) | rd[5]);
+    else if (type == 64 || type == 65) {
+        if (rd.size() >= 2) o << (type == 65 ? " HTTPS" : " SVCB") << " prio=" << ((rd[0] << 8) | rd[1]);
+    } else if (type == 43 && rd.size() >= 4)
+        o << " DS keytag=" << ((rd[0] << 8) | rd[1]) << " alg=" << int(rd[2]);
+    else if (type == 48 && rd.size() >= 4)
+        o << " DNSKEY flags=" << ((rd[0] << 8) | rd[1]) << " alg=" << int(rd[3]);
+    else if (type == 46 && rd.size() >= 18)
+        o << " RRSIG covered=" << ((rd[0] << 8) | rd[1]);
+    else if (type == 47)
+        o << " NSEC";
+    else if (type == 50)
+        o << " NSEC3";
     else if (type == 41)
         o << " OPT";
     else
@@ -137,7 +168,7 @@ ProtoView parse_strict(const std::vector<uint8_t>& packet) {
                 v.opt++;
                 if (!additional) v.findings.push_back({"DuplicateOPT", off, "OPT outside additional"});
             }
-            v.rdata_notes.push_back(note_rdata(type, rd));
+            v.rdata_notes.push_back(note_rdata(type, rd, packet, off, v));
             if (!additional) v.answers++;
         }
         return true;
@@ -145,6 +176,9 @@ ProtoView parse_strict(const std::vector<uint8_t>& packet) {
     if (!section(an, false)) return v;
     if (!section(ns, false)) return v;
     if (!section(ar, true)) return v;
+    if (v.rcode == 3) v.findings.push_back({"NXDOMAIN", 2, "name does not exist; not NODATA"});
+    if (v.rcode == 0 && v.answers == 0 && qd > 0)
+        v.findings.push_back({"NODATA", 6, "NOERROR and no answer; not NXDOMAIN"});
     if (v.opt > 1) v.findings.push_back({"DuplicateOPT", 0, "more than one OPT"});
     if (v.tc) v.findings.push_back({"TruncatedResponse", 2, "TC=1 does not mean records are absent"});
     v.ok = v.findings.empty() || (v.findings.size() == 1 && v.findings[0].category == "TruncatedResponse");
@@ -178,6 +212,28 @@ int run_protocol_selftest(std::ostream& out) {
         0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 8, 8, 8, 8};
     auto g = parse_strict(okp);
     check("bounded A parse", g.ok && g.qname == "google.com" && g.answers == 1);
+
+    std::vector<uint8_t> txt = {
+        0, 1, 0x80, 0, 0, 1, 0, 1, 0, 0, 0, 0,
+        1, 'a', 0, 0, 16, 0, 1,
+        0xc0, 12, 0, 16, 0, 1, 0, 0, 0, 1, 0, 5, 4, 'v', '=', 's', '1'};
+    auto t = parse_strict(txt);
+    check("txt strings", t.ok && !t.rdata_notes.empty() && t.rdata_notes[0].find("TXT strings=1") != std::string::npos);
+
+    std::vector<uint8_t> nx = {0, 2, 0x80, 3, 0, 1, 0, 0, 0, 0, 0, 0, 1, 'b', 0, 0, 1, 0, 1};
+    auto n = parse_strict(nx);
+    bool saw_nx = false;
+    for (const auto& f : n.findings) if (f.category == "NXDOMAIN") saw_nx = true;
+    check("nxdomain not nodata", saw_nx);
+
+    std::vector<uint8_t> badtxt = {
+        0, 3, 0x80, 0, 0, 1, 0, 1, 0, 0, 0, 0,
+        1, 'c', 0, 0, 16, 0, 1,
+        0xc0, 12, 0, 16, 0, 1, 0, 0, 0, 1, 0, 2, 5, 'x'};
+    auto bt = parse_strict(badtxt);
+    bool overrun = false;
+    for (const auto& f : bt.findings) if (f.category == "InvalidRData") overrun = true;
+    check("txt overrun", overrun);
     out << "protocol selftest failures=" << fail << "\n";
     return fail == 0 ? 0 : 1;
 }
