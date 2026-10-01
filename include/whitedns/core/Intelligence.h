@@ -35,6 +35,7 @@ void print_report(const FusionState& s);
 void print_doctor();
 void print_dga(const std::string& name);
 void print_summary(const std::string& name);
+void print_traffic(const std::string& name);
 
 } // namespace core
 } // namespace whitedns

@@ -246,7 +246,29 @@ void print_report(const FusionState& s) {
     print_graph(s);
 }
 
-void print_summary(const std::string& name) {
+void print_traffic(const std::string& name) {
+    ResolverEngine engine;
+    auto a = engine.query(name, DNS_TYPE_A, "8.8.8.8");
+    auto any = engine.query(name, 255, "1.1.1.1");
+    auto txt = engine.query(name, DNS_TYPE_TXT, "9.9.9.9");
+    std::cout << "WhiteDNS traffic analysis  " << name << "\n";
+    std::cout << "observe only. no amplification, no poison query, no tunnel payload.\n";
+    auto size_of = [](const Observation& o) {
+        return static_cast<int>(o.message.answers.size() + o.message.authority.size());
+    };
+    std::cout << "A answers=" << a.message.answers.size() << " tc=" << (a.message.flags.tc ? "yes" : "no")
+              << " rcode=" << a.message.flags.rcode << "\n";
+    std::cout << "ANY answers=" << any.message.answers.size() << " tc=" << (any.message.flags.tc ? "yes" : "no")
+              << " rcode=" << any.message.flags.rcode << "\n";
+    std::cout << "TXT answers=" << txt.message.answers.size() << "\n";
+    if (any.message.flags.tc || size_of(any) > 20)
+        std::cout << "indicator: large or truncated ANY. amplification exposure is a finding, not a test we send.\n";
+    else
+        std::cout << "indicator: ANY did not return a large set on this resolver.\n";
+    if (txt.message.answers.size() > 8)
+        std::cout << "indicator: many TXT records. volume alone is not a tunnel.\n";
+    std::cout << "poison still needs DNSSEC contradiction, disjoint resolvers, and AA disagreement.\n";
+}
     auto s = build_fusion(name);
     std::cout << "WhiteDNS summary  " << name << "\n";
     std::cout << "A:";

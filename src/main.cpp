@@ -77,6 +77,7 @@ enum class Command {
     WireCheck,
     Assess,
     Summary,
+    Traffic,
     Unknown
 };
 
@@ -250,6 +251,7 @@ Command parse_command(const std::string& command) {
     if (normalized == "wire-check" || normalized == "protocol") return Command::WireCheck;
     if (normalized == "assess" || normalized == "assessment") return Command::Assess;
     if (normalized == "summary" || normalized == "card") return Command::Summary;
+    if (normalized == "traffic" || normalized == "attack-traffic") return Command::Traffic;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -388,7 +390,8 @@ void print_usage() {
     std::cout << style("  dga", MAGENTA) << "          lexical screen, fixture accuracy printed\n";
     std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n";
     std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n";
-    std::cout << style("  summary", CYAN) << "      fused A/NS, agreement, lexical screen\n\n";
+    std::cout << style("  summary", CYAN) << "      fused A/NS, agreement, lexical screen\n";
+    std::cout << style("  traffic", YELLOW) << "      observe ANY/TXT size. does not send attacks\n\n";
     std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
     std::cout << "Global options:\n";
     std::cout << "  -h, --help      Show help\n";
@@ -937,7 +940,7 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Security || opt.command == Command::Doctor ||
                   opt.command == Command::Report || opt.command == Command::Dga ||
                   opt.command == Command::WireCheck || opt.command == Command::Assess ||
-                  opt.command == Command::Summary;
+                  opt.command == Command::Summary || opt.command == Command::Traffic;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -969,6 +972,14 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             core::print_summary(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Traffic) {
+            if (opt.domain.empty()) {
+                std::cerr << "Name required.\n";
+                return 1;
+            }
+            core::print_traffic(opt.domain);
             return 0;
         }
         if (opt.command == Command::Dga) {
