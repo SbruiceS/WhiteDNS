@@ -1,93 +1,35 @@
 <p align="center">
-  <img src="logo/whitedns.png" alt="WhiteDNS — Detect · Analyze · Secure · Explore" width="420" />
+  <img src="logo/whitedns.png" alt="WhiteDNS" width="420" />
 </p>
 
 <h1 align="center">WhiteDNS</h1>
 
 <p align="center">
-  <em>Advanced DNS Security · Forensics · Reconnaissance</em><br/>
+  DNS security, forensics and reconnaissance CLI<br/>
   <strong>DETECT &nbsp;|&nbsp; ANALYZE &nbsp;|&nbsp; SECURE &nbsp;|&nbsp; EXPLORE</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C++17" />
   <img src="https://img.shields.io/badge/CMake-build-064F8C?style=for-the-badge&logo=cmake&logoColor=white" alt="CMake" />
-  <img src="https://img.shields.io/badge/ODoH-RFC%209230-1a6dff?style=for-the-badge" alt="ODoH" />
-  <img src="https://img.shields.io/badge/DNSSEC-DS→DNSKEY-6f42c1?style=for-the-badge" alt="DNSSEC" />
-  <img src="https://img.shields.io/badge/Rules-161-ea580c?style=for-the-badge" alt="161 rules" />
+  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-111827?style=for-the-badge" alt="platforms" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Linux-supported-111827?style=flat-square&logo=linux&logoColor=white" alt="Linux" />
-  <img src="https://img.shields.io/badge/macOS-supported-111827?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
-  <img src="https://img.shields.io/badge/Windows-supported-111827?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
-  <img src="https://img.shields.io/badge/Termux-supported-111827?style=flat-square&logo=android&logoColor=white" alt="Termux" />
-  <img src="https://img.shields.io/badge/stance-defensive%20only-2ea44f?style=flat-square" alt="Defensive" />
-  <a href="https://github.com/SbruiceS/WhiteDNS"><img src="https://img.shields.io/badge/GitHub-SbruiceS%2FWhiteDNS-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  Cosinfotech Solutions · S. Bruice Singh
 </p>
 
-<p align="center">
-  A product of <b>Cosinfotech Solutions</b><br/>
-  Designed &amp; engineered by <b>S. Bruice Singh</b>
-</p>
+Use only on domains and resolvers you are allowed to query.
 
----
-
-<p align="center">
-WhiteDNS is a production C++17 CLI for <b>authorized</b> DNS security work:<br/>
-incident response, SOC review, lab research, and zone administration.<br/>
-Every serious conclusion is tied to observable DNS evidence.
-</p>
-
-```
-TARGET → SCOPE → QUERY PLAN → TRANSPORT (UDP / TCP / DoH / ODoH)
-      → RESOLVER → PARSE → CORRELATE → ANALYZE → EVIDENCE → REPORT
-```
-
-> Observation ≠ anomaly ≠ finding ≠ confirmed attack.  
-> Poisoning is confirmed only when **DNSSEC contradiction ∧ disjoint resolvers ∧ AA disagreement** all fire.
-
-## Command map
-
-| You want | Command |
-|:---|:---|
-| Framework audit (SANS · MITRE · RFC · IANA · ISACA) | `whitedns audit google.com` |
-| Oblivious DoH (RFC 9230) | `whitedns odoh nasa.gov` |
-| ODoH leak models | `whitedns odoh-leak` |
-| Resolver intel (SOA / MX / SPF / DMARC / CAA) | `whitedns intel infosys.com` |
-| DNSSEC DS → DNSKEY + RRSIG inventory | `whitedns dnssec-path infosys.com` |
-| Poison 3-gate classifier | `whitedns poison infosys.com` |
-| 161-rule taxonomy | `whitedns detect infosys.com` |
-| Issues only (FINDING + ANOMALY) | `whitedns faults infosys.com` |
-| Vendor **control** gaps (not exploits) | `whitedns controls google.com` |
-| TTL / RTT baseline | `whitedns baseline infosys.com` |
-| Rule catalog | `whitedns threats list` |
+## Install
 
 ```bash
-whitedns poison infosys.com
-# verdict=none  gates dnssec=0 resolver=0 aa=0
-# AA + 8.8.8.8 / 1.1.1.1 / 9.9.9.9  →  35.71.178.178
-# DS→DNSKEY MATCH
-```
-
-## Why it looks strict
-
-| Family | What you get |
-|:---|:---|
-| **ODoH** | Fastly relay + Cloudflare target. Relay sees your IP, not the QNAME. Target sees the QNAME, not your IP. |
-| **DNSSEC** | Live parent DS digest vs child DNSKEY. Presence is not validation. |
-| **Poison** | Three independent gates. Anycast on `google.com` stays `not-confirmed`. |
-| **Taxonomy** | 161 `WDNS-*` rules, 24 families. Flood / C2 / amp without telemetry stay **INCONCLUSIVE**. |
-| **Controls** | Cisco SAFE, ITU-T X.805, Nokia resolver roles, HP segmentation, Dell endpoint — **audit only**. |
-
-No amplification engine. No unauthorized AXFR. No RFC 2136 UPDATE against third-party NS.
-
-## Build
-
-```bash
-cmake -B build && cmake --build build
+cmake -B build
+cmake --build build
 ./build/whitedns --help
 ```
+
+Windows:
 
 ```powershell
 cmake -B build
@@ -95,21 +37,62 @@ cmake --build build --config Release
 .\build\Release\whitedns.exe --help
 ```
 
-OpenSSL powers DNSSEC digests and ODoH/HPKE when available.
+Needs a C++17 compiler and CMake. OpenSSL is used for DNSSEC digests and ODoH when it is present.
 
-## Docs in this tree
+## Use
 
-| File | Contents |
-|:---|:---|
-| [`docs/PLATFORM.md`](docs/PLATFORM.md) | System architecture |
-| [`docs/ODOH.md`](docs/ODOH.md) | RFC 9230 client + privacy split |
-| [`docs/THREAT_TAXONOMY.md`](docs/THREAT_TAXONOMY.md) | Rule families & evidence model |
-| [`FRAMEWORKS.md`](FRAMEWORKS.md) | SANS / MITRE / RFC / IANA / ISACA |
+```bash
+whitedns <command> [options] <name>
+whitedns arch
+whitedns doctor
+```
+
+| Command | What it does |
+|---|---|
+| `lookup` | One resolver, record inventory |
+| `records` | Same inventory |
+| `resolve` / `compare` | Several resolvers, not auto-classified |
+| `trace` | Delegation walk |
+| `baseline` | TTL cache and RTT |
+| `odoh` | Oblivious DoH query |
+| `odoh-filter` | ODoH policy checks |
+| `odoh-policy` | Authorized-use policy scan |
+| `odoh-leak` | Leak models |
+| `dnssec` | DS to DNSKEY digest |
+| `dnssec-path` | DS, DNSKEY, RRSIG, NSEC inventory |
+| `intel` | SOA, MX, SPF, DMARC, CAA |
+| `poison` | Three-gate classifier |
+| `threats` | Rule list |
+| `detect` | Run evaluators |
+| `explain` | One rule |
+| `faults` | Findings and anomalies |
+| `controls` | Defensive control gaps |
+| `audit` | Framework audit |
+| `graph` | Edges and graph algorithms |
+| `security` | Fusion plus poison gates |
+| `report` | Security and graph |
+| `dga` | Lexical screen |
+| `arch` | Command map |
+| `doctor` | What this build does and does not do |
+| `dns` `web` `enum` | Older surface checks |
+
+```bash
+whitedns lookup <name> -s 1.1.1.1
+whitedns resolve <name> -S 8.8.8.8,1.1.1.1,9.9.9.9
+whitedns dnssec-path <name>
+whitedns poison <name>
+whitedns detect <name>
+whitedns arch --color always
+```
+
+`--format json` for machine output. `--color never` or `NO_COLOR` turns colour off.
+
+Poison is confirmed only when DNSSEC contradiction, disjoint resolver answers, and authoritative disagreement all fire.
+
+## Docs
+
+[docs/CLI.md](docs/CLI.md) · [docs/PLATFORM.md](docs/PLATFORM.md) · [docs/ODOH.md](docs/ODOH.md) · [docs/INTELLIGENCE.md](docs/INTELLIGENCE.md)
 
 ## License
 
-See [`LICENSE`](LICENSE).
-
-<p align="center">
-  <sub>Cosinfotech Solutions · WhiteDNS · S. Bruice Singh</sub>
-</p>
+See [LICENSE](LICENSE).
