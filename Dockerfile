@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libjsoncpp-dev \
+    libssl-dev \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +20,7 @@ WORKDIR /app
 COPY . /app
 
 # Build WhiteDNS using CMake
-RUN cmake -B build && cmake --build build && cmake --install build --prefix /usr/local
+RUN cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON && cmake --build build && cmake --install build --prefix /usr/local
 
 # Set entrypoint to whitedns binary
 ENTRYPOINT ["whitedns"]

@@ -1,0 +1,14 @@
+name: release
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON
+      - run: cmake --build build
+      - run: ./build/whitedns doctor

@@ -37,13 +37,18 @@ add_executable(whitedns
 
 target_include_directories(whitedns PRIVATE include)
 
-find_package(OpenSSL)
+option(WHITEDNS_RELEASE "Require OpenSSL for a release build" OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR WHITEDNS_RELEASE)
+  find_package(OpenSSL REQUIRED)
+else()
+  find_package(OpenSSL)
+endif()
 if(OpenSSL_FOUND)
-  message(STATUS "WhiteDNS: OpenSSL ${OPENSSL_VERSION} found. DNSSEC signature verify and ODoH will link.")
+  message(STATUS "WhiteDNS: OpenSSL ${OPENSSL_VERSION} linked for DNSSEC and ODoH.")
   target_link_libraries(whitedns PRIVATE OpenSSL::SSL OpenSSL::Crypto)
   target_compile_definitions(whitedns PRIVATE WHITEDNS_HAVE_OPENSSL)
 else()
-  message(WARNING "WhiteDNS: OpenSSL not found. Build continues. DS digest and RRSIG byte verify stay off. Install libssl-dev (Debian/Ubuntu/Termux), openssl-devel (Fedora), or OpenSSL on Windows, then reconfigure.")
+  message(WARNING "WhiteDNS: OpenSSL not found. Debug build continues. A Release build requires it. Install libssl-dev, openssl-dev, or openssl-devel and reconfigure.")
 endif()
 
 add_executable(whitedns_test_wire tests/test_wire.cpp src/core/Wire.cpp src/DnsClient.cpp)
