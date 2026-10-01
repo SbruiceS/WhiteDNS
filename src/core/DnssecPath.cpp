@@ -95,11 +95,17 @@ DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& re
         else report.rrsig_expired++;
         if (tags.count(tag)) report.rrsig_keytag_hit++;
     }
-    report.sig_verified = verify_dnskey_rrsig(qname, keys, sigs);
+    std::vector<DnsRecord> a_set, ns_set;
+    collect(a_o, DNS_TYPE_A, a_set);
+    auto ns_o = engine.query(qname, DNS_TYPE_NS, res, TransportKind::Udp, true);
+    collect(ns_o, DNS_TYPE_NS, ns_set);
+    report.sig_verified = verify_rrsig_over(qname, 48, keys, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_A, a_set, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_NS, ns_set, keys, sigs);
 
     if (chain.ds_matches_key && report.rrsig_in_window > 0 && report.rrsig_keytag_hit > 0) {
         report.klass = "CONFIRMED_BY_VALIDATION";
-        report.notes = "DS digest matches a DNSKEY. RRSIG window and key tag checked. Ed25519 DNSKEY signature verify count is sig_verified. RSA and ECDSA signature bytes are not verified in this build.";
+        report.notes = "DS digest matches a DNSKEY. sig_ok counts RRSIG verifications for DNSKEY, A, and NS using algorithms 8, 13, and 15 when OpenSSL is linked.";
     } else if (chain.ds_matches_key) {
         report.klass = "OBSERVATION";
         report.notes = "DS digest matches. RRSIG window or key tag did not confirm.";
@@ -129,7 +135,7 @@ void print_dnssec_path(const DnssecPathReport& report) {
     std::cout << "DS→DNSKEY: " << (report.ds_matches_key ? "MATCH" : "no-match") << "\n";
     std::cout << "RRSIG window=" << report.rrsig_in_window << " expired=" << report.rrsig_expired
               << " keytag_hit=" << report.rrsig_keytag_hit
-              << " ed25519_dnskey_sig=" << report.sig_verified << "\n";
+              << " sig_ok=" << report.sig_verified << "\n";
     std::cout << "  " << report.chain_message << "\n";
     if (!report.rrsig_covers.empty()) {
         std::cout << "RRSIG covers:\n";

@@ -160,24 +160,40 @@ DnssecChainResult validate_ds_dnskey_chain(const std::string& domain,
 #endif
 }
 
+#ifdef WHITEDNS_HAVE_OPENSSL
+#include <openssl/bn.h>
+#include <openssl/rsa.h>
+#include <openssl/core_names.h>
+#endif
+
 int verify_dnskey_rrsig(const std::string& owner,
                         const std::vector<DnsRecord>& dnskey_records,
                         const std::vector<DnsRecord>& rrsig_records) {
+    return verify_rrsig_over(owner, 48, dnskey_records, dnskey_records, rrsig_records);
+}
+
+int verify_rrsig_over(const std::string& owner,
+                      uint16_t type_covered,
+                      const std::vector<DnsRecord>& rrset,
+                      const std::vector<DnsRecord>& dnskey_records,
+                      const std::vector<DnsRecord>& rrsig_records) {
 #ifndef WHITEDNS_HAVE_OPENSSL
     (void)owner;
+    (void)type_covered;
+    (void)rrset;
     (void)dnskey_records;
     (void)rrsig_records;
     return 0;
 #else
     int verified = 0;
-    std::vector<DnsRecord> keys = dnskey_records;
-    std::sort(keys.begin(), keys.end(), [](const DnsRecord& a, const DnsRecord& b) {
-        return a.rdata < b.rdata;
-    });
+    std::vector<DnsRecord> set = rrset;
+    std::sort(set.begin(), set.end(), [](const DnsRecord& a, const DnsRecord& b) { return a.rdata < b.rdata; });
     for (const auto& sig : rrsig_records) {
         if (sig.rdata.size() < 20) continue;
-        if (((sig.rdata[0] << 8) | sig.rdata[1]) != 48) continue;
-        if (sig.rdata[2] != 15) continue;
+        uint16_t covered = static_cast<uint16_t>((sig.rdata[0] << 8) | sig.rdata[1]);
+        if (covered != type_covered) continue;
+        uint8_t alg = sig.rdata[2];
+        if (alg != 8 && alg != 13 && alg != 15) continue;
         uint32_t orig_ttl = (sig.rdata[4] << 24) | (sig.rdata[5] << 16) | (sig.rdata[6] << 8) | sig.rdata[7];
         uint16_t tag = static_cast<uint16_t>((sig.rdata[16] << 8) | sig.rdata[17]);
         size_t name_at = 18;
@@ -191,26 +207,87 @@ int verify_dnskey_rrsig(const std::string& owner,
         name_at++;
         std::vector<uint8_t> blob(sig.rdata.begin(), sig.rdata.begin() + static_cast<std::ptrdiff_t>(name_at));
         auto own = canonical_owner(owner);
-        for (const auto& k : keys) {
+        for (const auto& rr : set) {
             blob.insert(blob.end(), own.begin(), own.end());
-            blob.push_back(0);
-            blob.push_back(48);
+            blob.push_back(static_cast<uint8_t>((type_covered >> 8) & 0xff));
+            blob.push_back(static_cast<uint8_t>(type_covered & 0xff));
             blob.push_back(0);
             blob.push_back(1);
             for (int s = 24; s >= 0; s -= 8) blob.push_back(static_cast<uint8_t>((orig_ttl >> s) & 0xff));
-            blob.push_back(static_cast<uint8_t>((k.rdata.size() >> 8) & 0xff));
-            blob.push_back(static_cast<uint8_t>(k.rdata.size() & 0xff));
-            blob.insert(blob.end(), k.rdata.begin(), k.rdata.end());
+            blob.push_back(static_cast<uint8_t>((rr.rdata.size() >> 8) & 0xff));
+            blob.push_back(static_cast<uint8_t>(rr.rdata.size() & 0xff));
+            blob.insert(blob.end(), rr.rdata.begin(), rr.rdata.end());
         }
         const DnsRecord* key = nullptr;
-        for (const auto& k : keys)
-            if (k.rdata.size() == 36 && k.rdata[3] == 15 && key_tag(k.rdata) == tag) key = &k;
+        for (const auto& k : dnskey_records)
+            if (k.rdata.size() > 4 && k.rdata[3] == alg && key_tag(k.rdata) == tag) key = &k;
         if (!key) continue;
-        EVP_PKEY* pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, key->rdata.data() + 4, 32);
+        const uint8_t* pk = key->rdata.data() + 4;
+        size_t pklen = key->rdata.size() - 4;
+        const uint8_t* sigb = sig.rdata.data() + name_at;
+        size_t siglen = sig.rdata.size() - name_at;
+        EVP_PKEY* pkey = nullptr;
+        std::vector<uint8_t> der_sig;
+        const uint8_t* vsig = sigb;
+        size_t vsiglen = siglen;
+        if (alg == 15 && pklen == 32) {
+            pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, pk, 32);
+        } else if (alg == 13 && pklen == 64 && siglen == 64) {
+            unsigned char point[65] = {0x04};
+            std::copy(pk, pk + 64, point + 1);
+            EVP_PKEY_CTX* kctx = EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr);
+            if (kctx && EVP_PKEY_fromdata_init(kctx) == 1) {
+                OSSL_PARAM params[] = {
+                    OSSL_PARAM_construct_utf8_string("group", const_cast<char*>("prime256v1"), 0),
+                    OSSL_PARAM_construct_octet_string("pub", point, 65),
+                    OSSL_PARAM_construct_end()};
+                EVP_PKEY_fromdata(kctx, &pkey, EVP_PKEY_PUBLIC_KEY, params);
+            }
+            EVP_PKEY_CTX_free(kctx);
+            auto part = [](const uint8_t* p) {
+                std::vector<uint8_t> v(p, p + 32);
+                if (v[0] & 0x80) v.insert(v.begin(), 0);
+                return v;
+            };
+            auto r = part(sigb);
+            auto s = part(sigb + 32);
+            der_sig.push_back(0x30);
+            der_sig.push_back(static_cast<uint8_t>(2 + r.size() + 2 + s.size()));
+            der_sig.push_back(0x02);
+            der_sig.push_back(static_cast<uint8_t>(r.size()));
+            der_sig.insert(der_sig.end(), r.begin(), r.end());
+            der_sig.push_back(0x02);
+            der_sig.push_back(static_cast<uint8_t>(s.size()));
+            der_sig.insert(der_sig.end(), s.begin(), s.end());
+            vsig = der_sig.data();
+            vsiglen = der_sig.size();
+        } else if (alg == 8 && pklen > 3) {
+            size_t elen = pk[0];
+            size_t off = 1;
+            if (elen == 0 && pklen > 3) {
+                elen = (pk[1] << 8) | pk[2];
+                off = 3;
+            }
+            if (off + elen < pklen) {
+                BIGNUM* e = BN_bin2bn(pk + off, static_cast<int>(elen), nullptr);
+                BIGNUM* n = BN_bin2bn(pk + off + elen, static_cast<int>(pklen - off - elen), nullptr);
+                if (e && n) pkey = EVP_PKEY_new();
+                if (pkey) {
+                    RSA* rsa = RSA_new();
+                    RSA_set0_key(rsa, n, e, nullptr);
+                    EVP_PKEY_assign_RSA(pkey, rsa);
+                    n = nullptr;
+                    e = nullptr;
+                }
+                BN_free(e);
+                BN_free(n);
+            }
+        }
         if (!pkey) continue;
         EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-        if (ctx && EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey) == 1 &&
-            EVP_DigestVerify(ctx, sig.rdata.data() + name_at, sig.rdata.size() - name_at, blob.data(), blob.size()) == 1)
+        const EVP_MD* md = alg == 15 ? nullptr : EVP_sha256();
+        if (ctx && EVP_DigestVerifyInit(ctx, nullptr, md, nullptr, pkey) == 1 &&
+            EVP_DigestVerify(ctx, vsig, vsiglen, blob.data(), blob.size()) == 1)
             verified++;
         EVP_MD_CTX_free(ctx);
         EVP_PKEY_free(pkey);

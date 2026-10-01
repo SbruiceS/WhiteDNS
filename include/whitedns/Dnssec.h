@@ -34,6 +34,12 @@ int verify_dnskey_rrsig(const std::string& owner,
                         const std::vector<DnsRecord>& dnskey_records,
                         const std::vector<DnsRecord>& rrsig_records);
 
+int verify_rrsig_over(const std::string& owner,
+                      uint16_t type_covered,
+                      const std::vector<DnsRecord>& rrset,
+                      const std::vector<DnsRecord>& dnskey_records,
+                      const std::vector<DnsRecord>& rrsig_records);
+
 } // namespace whitedns
 
 #endif
