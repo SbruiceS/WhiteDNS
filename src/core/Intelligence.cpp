@@ -263,6 +263,8 @@ void print_summary(const std::string& name) {
     std::cout << "ns_count=" << ns << " edges=" << s.edges.size() << "\n";
     print_dga(name);
 }
+
+void print_dga(const std::string& name) {
     std::string lab = name;
     auto dot = lab.find('.');
     if (dot != std::string::npos) lab = lab.substr(0, dot);
