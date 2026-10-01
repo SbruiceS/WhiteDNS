@@ -72,6 +72,7 @@ whitedns doctor
 | `security` | Fusion plus poison gates |
 | `report` | Security and graph |
 | `dga` | Lexical screen |
+| `wire-check` | Strict parser self-test |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |

@@ -16,6 +16,8 @@
 #include "whitedns/core/ThreatEngine.h"
 #include "whitedns/core/FaultReport.h"
 #include "whitedns/core/VendorControls.h"
+#include "whitedns/core/Intelligence.h"
+#include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -66,6 +68,13 @@ enum class Command {
     Research,
     Faults,
     Controls,
+    Arch,
+    Graph,
+    Security,
+    Doctor,
+    Report,
+    Dga,
+    WireCheck,
     Unknown
 };
 
@@ -138,6 +147,8 @@ const char* YELLOW = "\x1b[33m";
 const char* BLUE = "\x1b[34m";
 const char* MAGENTA = "\x1b[35m";
 const char* CYAN = "\x1b[36m";
+const char* DIM = "\x1b[2m";
+const char* WHITE = "\x1b[97m";
 
 std::string style(const std::string& text, const char* code) {
     return std::string(code) + text + RESET;
@@ -227,6 +238,14 @@ Command parse_command(const std::string& command) {
         return Command::Faults;
     if (normalized == "controls" || normalized == "vendor" || normalized == "vendor-audit")
         return Command::Controls;
+    if (normalized == "arch" || normalized == "architecture" || normalized == "commands")
+        return Command::Arch;
+    if (normalized == "graph") return Command::Graph;
+    if (normalized == "security") return Command::Security;
+    if (normalized == "doctor") return Command::Doctor;
+    if (normalized == "report" || normalized == "history") return Command::Report;
+    if (normalized == "dga") return Command::Dga;
+    if (normalized == "wire-check" || normalized == "protocol") return Command::WireCheck;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -262,6 +281,57 @@ void enable_windows_vt() {
     if (!GetConsoleMode(handle, &mode)) return;
     SetConsoleMode(handle, mode | 0x0004);
 #endif
+}
+
+void print_architecture() {
+    auto row = [](const char* cmd, const char* layer, const char* note, const char* color) {
+        std::cout << "  " << style(cmd, color) << style(std::string(16 - std::string(cmd).size(), ' '), DIM)
+                  << style(layer, YELLOW) << "  " << style(note, DIM) << "\n";
+    };
+    std::cout << style("╔══════════════════════════════════════════════════════════════╗", CYAN) << "\n";
+    std::cout << style("║  WhiteDNS command architecture                               ║", CYAN) << "\n";
+    std::cout << style("║  Cosinfotech Solutions  ·  S. Bruice Singh                   ║", CYAN) << "\n";
+    std::cout << style("╚══════════════════════════════════════════════════════════════╝", CYAN) << "\n";
+    std::cout << style("  TARGET → SCOPE → PLAN → TRANSPORT → RESOLVE → PARSE", MAGENTA) << "\n";
+    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n\n";
+    std::cout << style("  collect", BOLD) << "\n";
+    row("lookup", "wire/udp-tcp", "single resolver inventory", CYAN);
+    row("records", "wire", "record inventory alias", CYAN);
+    row("resolve", "compare", "multi-resolver, not auto-poison", CYAN);
+    row("compare", "compare", "alias of resolve", CYAN);
+    row("trace", "delegation", "iterative NS walk", CYAN);
+    row("baseline", "cache/rtt", "TTL observation + RTT", CYAN);
+    std::cout << style("  privacy", BOLD) << "\n";
+    row("odoh", "RFC 9230", "HPKE + relay, oblivious split", BLUE);
+    row("odoh-filter", "policy", "collusion, suite, padding", BLUE);
+    row("odoh-policy", "112 controls", "authorized-use scan", BLUE);
+    row("odoh-leak", "M01–M27", "what each party can see", BLUE);
+    std::cout << style("  validation", BOLD) << "\n";
+    row("dnssec", "DS→DNSKEY", "crypto digest check", GREEN);
+    row("dnssec-path", "path", "RRSIG / NSEC / NSEC3 inventory", GREEN);
+    row("intel", "RFC/SANS", "SOA MX SPF DMARC CAA", GREEN);
+    std::cout << style("  detection", BOLD) << "\n";
+    row("poison", "3-gate", "DNSSEC ∧ disjoint ∧ AA", RED);
+    row("threats", "taxonomy", "list | categories | info | validate", RED);
+    row("detect", "rules", "evaluate live observations", RED);
+    row("explain", "whitebox", "why a rule exists", RED);
+    row("research", "lab", "same detect, experimental mark", RED);
+    row("faults", "rollup", "FINDING + ANOMALY only", RED);
+    row("controls", "vendors", "Cisco/ITU/Nokia/HP/Dell gaps", RED);
+    row("graph", "fusion", "A/NS edges with provenance", CYAN);
+    row("security", "reason", "fusion plus poison gates", RED);
+    row("report", "evidence", "security and graph", GREEN);
+    row("doctor", "self", "pipeline check, no network", YELLOW);
+    row("audit", "frameworks", "SANS MITRE RFC IANA ISACA", RED);
+    std::cout << style("  surface", BOLD) << "\n";
+    row("dns", "classic", "flags -r -n -w -c -x -A -H", YELLOW);
+    row("web", "http", "headers and assets", YELLOW);
+    row("enum", "labels", "scoped subdomain candidates", YELLOW);
+    row("firewall", "posture", "DNS + web signals", YELLOW);
+    row("enterprise", "profile", "combined scan", YELLOW);
+    std::cout << style("  arch", BOLD) << "  " << style("this map", DIM) << "\n";
+    std::cout << "\n" << style("  confirmation", BOLD) << "  poison = dnssec contradiction AND resolver disjoint AND AA disagree\n";
+    std::cout << style("  color", BOLD) << "  --color always | auto | never   NO_COLOR disables\n";
 }
 
 void print_version() {
@@ -305,7 +375,14 @@ void print_usage() {
     std::cout << "  explain       Explain a rule ID\n";
     std::cout << "  research      Raw observations + experimental detectors\n";
     std::cout << "  faults        Aggregate FINDING/ANOMALY + poison gates (defensive)\n";
-    std::cout << "  controls      Cisco/ITU/Nokia/HP/Dell defensive control gaps\n\n";
+    std::cout << style("  controls", RED) << "      Cisco/ITU/Nokia/HP/Dell defensive control gaps\n";
+    std::cout << style("  arch", MAGENTA) << "          command architecture map (colour)\n";
+    std::cout << style("  graph", CYAN) << "         fused A/NS graph with provenance\n";
+    std::cout << style("  security", RED) << "      fusion + poison gates\n";
+    std::cout << style("  report", GREEN) << "       security and graph together\n";
+    std::cout << style("  doctor", YELLOW) << "       pipeline self-check\n";
+    std::cout << style("  dga", MAGENTA) << "          lexical screen, fixture accuracy printed\n";
+    std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n\n";
     std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
     std::cout << "Global options:\n";
     std::cout << "  -h, --help      Show help\n";
@@ -849,8 +926,27 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::DnssecPath || opt.command == Command::Poison ||
                   opt.command == Command::Threats || opt.command == Command::Detect ||
                   opt.command == Command::Explain || opt.command == Command::Research ||
-                  opt.command == Command::Faults || opt.command == Command::Controls;
+                  opt.command == Command::Faults || opt.command == Command::Controls ||
+                  opt.command == Command::Arch || opt.command == Command::Graph ||
+                  opt.command == Command::Security || opt.command == Command::Doctor ||
+                  opt.command == Command::Report || opt.command == Command::Dga ||
+                  opt.command == Command::WireCheck;
     if (phase1) {
+        if (opt.command == Command::Doctor) {
+            core::print_doctor();
+            return 0;
+        }
+        if (opt.command == Command::WireCheck) {
+            return core::run_protocol_selftest(std::cout);
+        }
+        if (opt.command == Command::Dga) {
+            core::print_dga(opt.domain.empty() ? "unset" : opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Arch) {
+            print_architecture();
+            return 0;
+        }
         if (opt.command == Command::Threats) {
             std::string sub = opt.domain;
             if (sub.empty() || sub == "list") core::print_threat_catalog();
@@ -884,6 +980,13 @@ int main(int argc, char* argv[]) {
         if (!whitedns::core::in_scope(opt.domain, opt.scope.empty() ? (std::getenv("WHITEDNS_SCOPE") ? std::getenv("WHITEDNS_SCOPE") : "") : opt.scope)) {
             std::cerr << "scope/denied: " << opt.domain << "\n";
             return 1;
+        }
+        if (opt.command == Command::Graph || opt.command == Command::Security || opt.command == Command::Report) {
+            auto fused = core::build_fusion(opt.domain);
+            if (opt.command == Command::Graph) core::print_graph(fused);
+            else if (opt.command == Command::Security) core::print_security(fused);
+            else core::print_report(fused);
+            return 0;
         }
         if (opt.command == Command::Controls) {
             core::run_print_vendor_controls(opt.domain);

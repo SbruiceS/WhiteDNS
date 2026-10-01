@@ -31,6 +31,8 @@ add_executable(whitedns
   src/core/ThreatEngine.cpp
   src/core/FaultReport.cpp
   src/core/VendorControls.cpp
+  src/core/Intelligence.cpp
+  src/core/ProtocolEngine.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)
