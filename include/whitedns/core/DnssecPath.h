@@ -23,6 +23,9 @@ struct DnssecPathReport {
     std::string klass; // CONFIRMED_BY_VALIDATION, OBSERVATION, ANOMALY
     std::vector<std::string> rrsig_covers;
     std::string notes;
+    int rrsig_in_window = 0;
+    int rrsig_expired = 0;
+    int rrsig_keytag_hit = 0;
 };
 
 DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& resolver);

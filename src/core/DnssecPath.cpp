@@ -5,6 +5,7 @@
 #include "whitedns/IanaDns.h"
 #include "whitedns/core/ResolverEngine.h"
 
+#include <ctime>
 #include <iostream>
 #include <set>
 
@@ -77,15 +78,36 @@ DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& re
     report.ds_matches_key = chain.ds_matches_key;
     report.chain_message = chain.message.empty() ? "(no DS/DNSKEY pair to hash)" : chain.message;
 
-    if (chain.ds_matches_key) {
+    std::set<int> tags;
+    for (const auto& k : keys) {
+        if (k.rdata.size() < 4) continue;
+        uint32_t ac = 0;
+        for (size_t i = 0; i < k.rdata.size(); ++i) ac += (i & 1) ? k.rdata[i] : (k.rdata[i] << 8);
+        tags.insert(static_cast<int>(ac & 0xffff));
+    }
+    std::time_t now = std::time(nullptr);
+    for (const auto& s : sigs) {
+        if (s.rdata.size() < 18) continue;
+        uint32_t exp = (s.rdata[4] << 24) | (s.rdata[5] << 16) | (s.rdata[6] << 8) | s.rdata[7];
+        uint32_t inc = (s.rdata[8] << 24) | (s.rdata[9] << 16) | (s.rdata[10] << 8) | s.rdata[11];
+        uint16_t tag = static_cast<uint16_t>((s.rdata[16] << 8) | s.rdata[17]);
+        if (static_cast<std::time_t>(inc) <= now && now <= static_cast<std::time_t>(exp)) report.rrsig_in_window++;
+        else report.rrsig_expired++;
+        if (tags.count(tag)) report.rrsig_keytag_hit++;
+    }
+
+    if (chain.ds_matches_key && report.rrsig_in_window > 0 && report.rrsig_keytag_hit > 0) {
         report.klass = "CONFIRMED_BY_VALIDATION";
-        report.notes = "DS digest matches a child DNSKEY (RFC 4034). RRSIG RRSet crypto verify of every type is still Phase-3 partial.";
+        report.notes = "DS digest matches a DNSKEY. At least one RRSIG is inside its inception/expiration window and its key tag is on a fetched DNSKEY. RRSet signature bytes are not verified in this build.";
+    } else if (chain.ds_matches_key) {
+        report.klass = "OBSERVATION";
+        report.notes = "DS digest matches. RRSIG window or key tag did not confirm.";
     } else if (report.ds_present || report.dnskey_present || report.rrsig_present) {
         report.klass = "OBSERVATION";
-        report.notes = "SANS: presence is not validation. DS/DNSKEY/RRSIG seen but digest did not confirm.";
+        report.notes = "Presence is not validation. DS digest did not confirm.";
     } else {
         report.klass = "OBSERVATION";
-        report.notes = "No DS/DNSKEY/RRSIG on this resolver path. Zone may be unsigned (example: many enterprise apexes).";
+        report.notes = "No DS, DNSKEY, or RRSIG on this resolver path.";
     }
     if (report.nx_has_nsec) {
         report.notes += " NXDOMAIN carried NSEC/NSEC3 in authority (authenticated-denial observation, not a full proof walk).";
@@ -104,6 +126,8 @@ void print_dnssec_path(const DnssecPathReport& report) {
               << "  NSEC3=" << (report.nsec3_present ? "yes" : "no")
               << "  NX+NSEC=" << (report.nx_has_nsec ? "yes" : "no") << "\n";
     std::cout << "DS→DNSKEY: " << (report.ds_matches_key ? "MATCH" : "no-match") << "\n";
+    std::cout << "RRSIG window=" << report.rrsig_in_window << " expired=" << report.rrsig_expired
+              << " keytag_hit=" << report.rrsig_keytag_hit << "\n";
     std::cout << "  " << report.chain_message << "\n";
     if (!report.rrsig_covers.empty()) {
         std::cout << "RRSIG covers:\n";
