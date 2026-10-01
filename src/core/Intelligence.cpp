@@ -3,6 +3,7 @@
 #include "whitedns/DnsTypes.h"
 #include "whitedns/core/PoisonClassifier.h"
 #include "whitedns/core/ResolverEngine.h"
+#include "whitedns/core/TrafficPack.h"
 
 #include <cmath>
 #include <map>
@@ -281,6 +282,7 @@ void print_traffic(const std::string& name) {
     }
     std::cout << "protocol faults: run wire-check for parser bounds. traffic does not invent a packet fault.\n";
     std::cout << "modules linked: ResolverEngine, fusion, graph route, poison gates. OpenSSL is separate.\n";
+    print_traffic_pack(name);
 }
 
 void print_summary(const std::string& name) {
