@@ -269,6 +269,8 @@ void print_traffic(const std::string& name) {
         std::cout << "indicator: many TXT records. volume alone is not a tunnel.\n";
     std::cout << "poison still needs DNSSEC contradiction, disjoint resolvers, and AA disagreement.\n";
 }
+
+void print_summary(const std::string& name) {
     auto s = build_fusion(name);
     std::cout << "WhiteDNS summary  " << name << "\n";
     std::cout << "A:";
