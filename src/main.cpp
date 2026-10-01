@@ -17,6 +17,7 @@
 #include "whitedns/core/FaultReport.h"
 #include "whitedns/core/VendorControls.h"
 #include "whitedns/core/Intelligence.h"
+#include "whitedns/core/TrafficPack.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -78,6 +79,10 @@ enum class Command {
     Assess,
     Summary,
     Traffic,
+    TrafficProto,
+    TrafficRoute,
+    TrafficFlow,
+    TrafficFault,
     Unknown
 };
 
@@ -252,6 +257,10 @@ Command parse_command(const std::string& command) {
     if (normalized == "assess" || normalized == "assessment") return Command::Assess;
     if (normalized == "summary" || normalized == "card") return Command::Summary;
     if (normalized == "traffic" || normalized == "dns-traffic" || normalized == "flow" || normalized == "attack-traffic") return Command::Traffic;
+    if (normalized == "traffic-proto") return Command::TrafficProto;
+    if (normalized == "traffic-route") return Command::TrafficRoute;
+    if (normalized == "traffic-flow") return Command::TrafficFlow;
+    if (normalized == "traffic-fault") return Command::TrafficFault;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -391,7 +400,11 @@ void print_usage() {
     std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n";
     std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n";
     std::cout << style("  summary", CYAN) << "      fused A/NS, agreement, lexical screen\n";
-    std::cout << style("  traffic", YELLOW) << "      observe ANY/TXT size. does not send attacks\n\n";
+    std::cout << style("  traffic", YELLOW) << "      90-check observe pack. alias flow\n";
+    std::cout << style("  traffic-proto", YELLOW) << " protocol counts\n";
+    std::cout << style("  traffic-route", YELLOW) << " graph route\n";
+    std::cout << style("  traffic-flow", YELLOW) << "  agreement and drop\n";
+    std::cout << style("  traffic-fault", YELLOW) << " observation faults\n\n";
     std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
     std::cout << "Global options:\n";
     std::cout << "  -h, --help      Show help\n";
@@ -940,7 +953,9 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Security || opt.command == Command::Doctor ||
                   opt.command == Command::Report || opt.command == Command::Dga ||
                   opt.command == Command::WireCheck || opt.command == Command::Assess ||
-                  opt.command == Command::Summary || opt.command == Command::Traffic;
+                  opt.command == Command::Summary || opt.command == Command::Traffic ||
+                  opt.command == Command::TrafficProto || opt.command == Command::TrafficRoute ||
+                  opt.command == Command::TrafficFlow || opt.command == Command::TrafficFault;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -980,6 +995,19 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             core::print_traffic(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::TrafficProto || opt.command == Command::TrafficRoute ||
+            opt.command == Command::TrafficFlow || opt.command == Command::TrafficFault) {
+            if (opt.domain.empty()) {
+                std::cerr << "Name required.\n";
+                return 1;
+            }
+            const char* fam = "protocol";
+            if (opt.command == Command::TrafficRoute) fam = "route";
+            if (opt.command == Command::TrafficFlow) fam = "flow";
+            if (opt.command == Command::TrafficFault) fam = "fault";
+            core::print_traffic_family(opt.domain, fam);
             return 0;
         }
         if (opt.command == Command::Dga) {

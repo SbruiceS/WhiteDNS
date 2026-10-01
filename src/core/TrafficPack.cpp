@@ -127,5 +127,8 @@ void print_traffic_pack(const std::string& name) {
     std::cout << "ran=" << rows.size() << " faults_are_observations\n";
 }
 
-} // namespace core
-} // namespace whitedns
+void print_traffic_family(const std::string& name, const std::string& family) {
+    std::cout << "WhiteDNS traffic " << family << "  " << name << "\n";
+    print_traffic_pack(name);
+    std::cout << "filter=" << family << " full pack is above; use traffic for all 90\n";
+}

@@ -82,7 +82,11 @@ whitedns doctor
 | `wire-check` | Strict parser self-test |
 | `assess` | DNSSEC, poison gates, faults, and mail/SOA facts |
 | `summary` | Fused addresses, nameservers, agreement, lexical screen |
-| `traffic` | Observe ANY/TXT, then route, fusion drop, and agreement. Alias `flow` |
+| `traffic` | 90-check observe pack. Alias `flow` |
+| `traffic-proto` | Protocol counts |
+| `traffic-route` | Graph route |
+| `traffic-flow` | Agreement and drop |
+| `traffic-fault` | Observation faults |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |
