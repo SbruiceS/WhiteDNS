@@ -82,7 +82,7 @@ whitedns doctor
 | `wire-check` | Strict parser self-test |
 | `assess` | DNSSEC, poison gates, faults, and mail/SOA facts |
 | `summary` | Fused addresses, nameservers, agreement, lexical screen |
-| `traffic` | Observe ANY and TXT size. Does not send attack traffic |
+| `traffic` | Observe ANY/TXT, then route, fusion drop, and agreement. Alias `flow` |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |

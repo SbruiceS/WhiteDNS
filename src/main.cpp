@@ -251,7 +251,7 @@ Command parse_command(const std::string& command) {
     if (normalized == "wire-check" || normalized == "protocol") return Command::WireCheck;
     if (normalized == "assess" || normalized == "assessment") return Command::Assess;
     if (normalized == "summary" || normalized == "card") return Command::Summary;
-    if (normalized == "traffic" || normalized == "dns-traffic" || normalized == "attack-traffic") return Command::Traffic;
+    if (normalized == "traffic" || normalized == "dns-traffic" || normalized == "flow" || normalized == "attack-traffic") return Command::Traffic;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }

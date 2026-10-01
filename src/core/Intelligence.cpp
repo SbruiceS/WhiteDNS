@@ -268,6 +268,19 @@ void print_traffic(const std::string& name) {
     if (txt.message.answers.size() > 8)
         std::cout << "indicator: many TXT records. volume alone is not a tunnel.\n";
     std::cout << "poison still needs DNSSEC contradiction, disjoint resolvers, and AA disagreement.\n";
+    auto fused = build_fusion(name);
+    std::cout << "data annihilation raw=" << fused.raw << " kept=" << fused.kept
+              << " dup_dropped=" << fused.dropped_dup << "\n";
+    std::cout << "data flow edges=" << fused.edges.size() << " contradiction="
+              << (fused.contradiction ? "yes" : "no") << "\n";
+    for (const auto& line : fused.algorithm_lines) {
+        if (line.find("shortest_path") != std::string::npos || line.find("components=") != std::string::npos ||
+            line.find("degree_centrality") != std::string::npos || line.find("bayes_") != std::string::npos ||
+            line.find("dempster") != std::string::npos)
+            std::cout << "route/flow " << line << "\n";
+    }
+    std::cout << "protocol faults: run wire-check for parser bounds. traffic does not invent a packet fault.\n";
+    std::cout << "modules linked: ResolverEngine, fusion, graph route, poison gates. OpenSSL is separate.\n";
 }
 
 void print_summary(const std::string& name) {
