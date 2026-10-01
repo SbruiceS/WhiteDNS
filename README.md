@@ -80,7 +80,8 @@ whitedns doctor
 | `report` | Security and graph |
 | `dga` | Lexical screen |
 | `wire-check` | Strict parser self-test |
-| `assess` | DNSSEC, poison gates, and faults on an authorized name |
+| `assess` | DNSSEC, poison gates, faults, and mail/SOA facts |
+| `summary` | Fused addresses, nameservers, agreement, lexical screen |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |

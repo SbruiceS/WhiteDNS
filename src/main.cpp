@@ -76,6 +76,7 @@ enum class Command {
     Dga,
     WireCheck,
     Assess,
+    Summary,
     Unknown
 };
 
@@ -247,6 +248,8 @@ Command parse_command(const std::string& command) {
     if (normalized == "report" || normalized == "history") return Command::Report;
     if (normalized == "dga") return Command::Dga;
     if (normalized == "wire-check" || normalized == "protocol") return Command::WireCheck;
+    if (normalized == "assess" || normalized == "assessment") return Command::Assess;
+    if (normalized == "summary" || normalized == "card") return Command::Summary;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -384,7 +387,8 @@ void print_usage() {
     std::cout << style("  doctor", YELLOW) << "       pipeline self-check\n";
     std::cout << style("  dga", MAGENTA) << "          lexical screen, fixture accuracy printed\n";
     std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n";
-    std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n\n";
+    std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n";
+    std::cout << style("  summary", CYAN) << "      fused A/NS, agreement, lexical screen\n\n";
     std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
     std::cout << "Global options:\n";
     std::cout << "  -h, --help      Show help\n";
@@ -932,7 +936,8 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Arch || opt.command == Command::Graph ||
                   opt.command == Command::Security || opt.command == Command::Doctor ||
                   opt.command == Command::Report || opt.command == Command::Dga ||
-                  opt.command == Command::WireCheck || opt.command == Command::Assess;
+                  opt.command == Command::WireCheck || opt.command == Command::Assess ||
+                  opt.command == Command::Summary;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -953,6 +958,17 @@ int main(int argc, char* argv[]) {
             auto poison = core::run_poison_classifier(opt.domain, {});
             core::print_poison_classifier(poison);
             core::run_print_faults(opt.domain);
+            auto intel = core::run_resolver_intel(opt.domain, "1.1.1.1");
+            core::print_resolver_intel(intel);
+            core::print_summary(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Summary) {
+            if (opt.domain.empty()) {
+                std::cerr << "Name required.\n";
+                return 1;
+            }
+            core::print_summary(opt.domain);
             return 0;
         }
         if (opt.command == Command::Dga) {

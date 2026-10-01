@@ -246,7 +246,23 @@ void print_report(const FusionState& s) {
     print_graph(s);
 }
 
-void print_dga(const std::string& name) {
+void print_summary(const std::string& name) {
+    auto s = build_fusion(name);
+    std::cout << "WhiteDNS summary  " << name << "\n";
+    std::cout << "A:";
+    for (const auto& a : s.fused_a) std::cout << " " << a;
+    std::cout << "\n";
+    std::cout << "raw=" << s.raw << " kept=" << s.kept << " contradiction="
+              << (s.contradiction ? "yes" : "no") << " agreement=" << s.confidence << "\n";
+    int ns = 0;
+    for (const auto& e : s.edges)
+        if (e.rel == "delegates-to") {
+            std::cout << "NS " << e.to << "\n";
+            ns++;
+        }
+    std::cout << "ns_count=" << ns << " edges=" << s.edges.size() << "\n";
+    print_dga(name);
+}
     std::string lab = name;
     auto dot = lab.find('.');
     if (dot != std::string::npos) lab = lab.substr(0, dot);
