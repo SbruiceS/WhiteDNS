@@ -26,6 +26,7 @@ struct DnssecPathReport {
     int rrsig_in_window = 0;
     int rrsig_expired = 0;
     int rrsig_keytag_hit = 0;
+    int sig_verified = 0;
 };
 
 DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& resolver);

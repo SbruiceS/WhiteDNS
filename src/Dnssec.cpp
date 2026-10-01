@@ -160,4 +160,63 @@ DnssecChainResult validate_ds_dnskey_chain(const std::string& domain,
 #endif
 }
 
+int verify_dnskey_rrsig(const std::string& owner,
+                        const std::vector<DnsRecord>& dnskey_records,
+                        const std::vector<DnsRecord>& rrsig_records) {
+#ifndef WHITEDNS_HAVE_OPENSSL
+    (void)owner;
+    (void)dnskey_records;
+    (void)rrsig_records;
+    return 0;
+#else
+    int verified = 0;
+    std::vector<DnsRecord> keys = dnskey_records;
+    std::sort(keys.begin(), keys.end(), [](const DnsRecord& a, const DnsRecord& b) {
+        return a.rdata < b.rdata;
+    });
+    for (const auto& sig : rrsig_records) {
+        if (sig.rdata.size() < 20) continue;
+        if (((sig.rdata[0] << 8) | sig.rdata[1]) != 48) continue;
+        if (sig.rdata[2] != 15) continue;
+        uint32_t orig_ttl = (sig.rdata[4] << 24) | (sig.rdata[5] << 16) | (sig.rdata[6] << 8) | sig.rdata[7];
+        uint16_t tag = static_cast<uint16_t>((sig.rdata[16] << 8) | sig.rdata[17]);
+        size_t name_at = 18;
+        int guard = 0;
+        while (name_at < sig.rdata.size() && sig.rdata[name_at] != 0 && guard < 128) {
+            if ((sig.rdata[name_at] & 0xc0) == 0xc0) break;
+            name_at += 1 + sig.rdata[name_at];
+            guard++;
+        }
+        if (name_at >= sig.rdata.size() || sig.rdata[name_at] != 0) continue;
+        name_at++;
+        std::vector<uint8_t> blob(sig.rdata.begin(), sig.rdata.begin() + static_cast<std::ptrdiff_t>(name_at));
+        auto own = canonical_owner(owner);
+        for (const auto& k : keys) {
+            blob.insert(blob.end(), own.begin(), own.end());
+            blob.push_back(0);
+            blob.push_back(48);
+            blob.push_back(0);
+            blob.push_back(1);
+            for (int s = 24; s >= 0; s -= 8) blob.push_back(static_cast<uint8_t>((orig_ttl >> s) & 0xff));
+            blob.push_back(static_cast<uint8_t>((k.rdata.size() >> 8) & 0xff));
+            blob.push_back(static_cast<uint8_t>(k.rdata.size() & 0xff));
+            blob.insert(blob.end(), k.rdata.begin(), k.rdata.end());
+        }
+        const DnsRecord* key = nullptr;
+        for (const auto& k : keys)
+            if (k.rdata.size() == 36 && k.rdata[3] == 15 && key_tag(k.rdata) == tag) key = &k;
+        if (!key) continue;
+        EVP_PKEY* pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, key->rdata.data() + 4, 32);
+        if (!pkey) continue;
+        EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+        if (ctx && EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey) == 1 &&
+            EVP_DigestVerify(ctx, sig.rdata.data() + name_at, sig.rdata.size() - name_at, blob.data(), blob.size()) == 1)
+            verified++;
+        EVP_MD_CTX_free(ctx);
+        EVP_PKEY_free(pkey);
+    }
+    return verified;
+#endif
+}
+
 } // namespace whitedns

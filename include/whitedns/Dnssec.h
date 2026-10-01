@@ -29,6 +29,11 @@ DnssecChainResult validate_ds_dnskey_chain(const std::string& domain,
                                            const std::vector<DnsRecord>& dnskey_records,
                                            const std::vector<DnsRecord>& rrsig_records);
 
+// Verifies RRSIG bytes over the DNSKEY RRSet. 0 if OpenSSL is not linked.
+int verify_dnskey_rrsig(const std::string& owner,
+                        const std::vector<DnsRecord>& dnskey_records,
+                        const std::vector<DnsRecord>& rrsig_records);
+
 } // namespace whitedns
 
 #endif
