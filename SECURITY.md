@@ -5,7 +5,9 @@ WhiteDNS is owned by Cosinfotech Solutions. Report a defect in the tool to sbrui
 Repository rules:
 
 - `main` accepts changes only through a pull request.
-- A pull request needs a review from the code owner.
+- Review requests are assigned to SbruiceS through `.github/CODEOWNERS`.
+- GitHub will not request a review from the person who opened the pull request. Your own pull request is not a missing assignment.
+- Another person's pull request must be approved by SbruiceS before it merges.
 - Force-push and deletion of `main` are rejected.
 - Required status checks must pass before merge when a workflow is present.
 - Signed commits are requested. Unsigned commits can still be blocked by the branch rule once signing is required in the GitHub setting.
