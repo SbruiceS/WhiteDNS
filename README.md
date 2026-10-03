@@ -87,6 +87,7 @@ whitedns doctor
 | `traffic-route` | Graph route |
 | `traffic-flow` | Agreement and drop |
 | `traffic-fault` | Observation faults |
+| `deep` | 50 computed label, TTL, EDNS, and fusion checks |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |
