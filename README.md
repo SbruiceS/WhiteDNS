@@ -88,6 +88,7 @@ whitedns doctor
 | `traffic-flow` | Agreement and drop |
 | `traffic-fault` | Observation faults |
 | `deep` | 50 computed label, TTL, EDNS, and fusion checks |
+| `feeds` | Pull URLhaus lists and match the name. Alias `intel-feed` |
 | `arch` | Command map |
 | `doctor` | What this build does and does not do |
 | `dns` `web` `enum` | Older surface checks |

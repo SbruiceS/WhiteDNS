@@ -19,6 +19,7 @@
 #include "whitedns/core/Intelligence.h"
 #include "whitedns/core/TrafficPack.h"
 #include "whitedns/core/DeepPack.h"
+#include "whitedns/core/ThreatFeeds.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -85,6 +86,7 @@ enum class Command {
     TrafficFlow,
     TrafficFault,
     Deep,
+    Feeds,
     Unknown
 };
 
@@ -264,6 +266,7 @@ Command parse_command(const std::string& command) {
     if (normalized == "traffic-flow") return Command::TrafficFlow;
     if (normalized == "traffic-fault") return Command::TrafficFault;
     if (normalized == "deep") return Command::Deep;
+    if (normalized == "feeds" || normalized == "intel-feed") return Command::Feeds;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -959,7 +962,7 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Summary || opt.command == Command::Traffic ||
                   opt.command == Command::TrafficProto || opt.command == Command::TrafficRoute ||
                   opt.command == Command::TrafficFlow || opt.command == Command::TrafficFault ||
-                  opt.command == Command::Deep;
+                  opt.command == Command::Deep || opt.command == Command::Feeds;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1020,6 +1023,14 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             core::print_deep_pack(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Feeds) {
+            if (opt.domain.empty()) {
+                std::cerr << "Name required.\n";
+                return 1;
+            }
+            core::print_threat_feeds(opt.domain);
             return 0;
         }
         if (opt.command == Command::Dga) {
