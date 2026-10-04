@@ -35,6 +35,7 @@ add_executable(whitedns
   src/core/ProtocolEngine.cpp
   src/core/TrafficPack.cpp
   src/core/DeepPack.cpp
+  src/core/ThreatFeeds.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)
