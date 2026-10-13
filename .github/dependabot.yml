@@ -1,0 +1,71 @@
+# ============================================================
+# WhiteDNS — Advanced Dependency Update Policy
+# Project: WhiteDNS DNS Security & Intelligence Platform
+# Language: C++
+# Configuration Version: 2
+# ============================================================
+
+version: 2
+
+updates:
+
+  # ----------------------------------------------------------
+  # 1. GitHub Actions — CI/CD Supply-Chain Maintenance
+  # ----------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kolkata"
+
+    open-pull-requests-limit: 10
+
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "supply-chain"
+
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+
+    rebase-strategy: "auto"
+
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+    # Update only the main development branch.
+    target-branch: "main"
+
+
+  # ----------------------------------------------------------
+  # 2. Git Submodules — External Source Dependencies
+  # ----------------------------------------------------------
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Asia/Kolkata"
+
+    open-pull-requests-limit: 5
+
+    labels:
+      - "dependencies"
+      - "git-submodules"
+      - "supply-chain"
+
+    commit-message:
+      prefix: "build(submodules)"
+      include: "scope"
+
+    rebase-strategy: "auto"
+
+    target-branch: "main"
