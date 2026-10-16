@@ -1,6 +1,7 @@
 #ifndef WHITEDNS_CORE_FILTERENGINE_H
 #define WHITEDNS_CORE_FILTERENGINE_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
