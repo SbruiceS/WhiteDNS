@@ -7,8 +7,36 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
       - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON
       - run: cmake --build build
       - run: ./build/whitedns doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whitedns-linux
+          path: build/whitedns
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install cmake openssl jsoncpp
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)"
+      - run: cmake --build build
+      - run: ./build/whitedns doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whitedns-macos
+          path: build/whitedns
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: vcpkg install openssl:x64-windows jsoncpp:x64-windows
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+      - run: cmake --build build --config Release
+      - run: .\build\Release\whitedns.exe doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whitedns-windows
+          path: build/Release/whitedns.exe

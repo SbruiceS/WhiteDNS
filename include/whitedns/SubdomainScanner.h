@@ -11,6 +11,7 @@ namespace whitedns {
 struct SubdomainResult {
     std::string subdomain;
     bool resolved = false;
+    int depth = 1;
     std::vector<std::string> addresses;
     std::string error;
 };
@@ -20,20 +21,25 @@ public:
     SubdomainScanner(std::string domain,
                      std::vector<std::string> candidates,
                      std::string resolver = "8.8.8.8",
-                     int timeout_ms = 2000);
+                     int timeout_ms = 2000,
+                     int workers = 16);
 
     void run();
+    void run_recursive(int depth);
     const std::vector<SubdomainResult>& results() const;
     Json::Value to_json() const;
 
 private:
     void probe_candidate(const std::string& candidate);
+    void probe_at(const std::string& candidate, const std::string& base, int depth);
     std::vector<std::string> normalize_candidates(const std::vector<std::string>& candidates) const;
+    std::vector<std::string> short_prefixes() const;
 
     std::string domain_;
     std::vector<std::string> candidates_;
     std::string resolver_;
     int timeout_ms_;
+    int workers_;
     std::vector<SubdomainResult> results_;
     std::mutex results_mutex_;
 };

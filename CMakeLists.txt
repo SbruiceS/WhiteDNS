@@ -14,6 +14,7 @@ add_executable(whitedns
   src/Analyzer.cpp
   src/PortScanner.cpp
   src/SubdomainScanner.cpp
+  src/SubdomainDsl.cpp
   src/HttpScanner.cpp
   src/FrameworkAudit.cpp
   src/Dnssec.cpp
@@ -36,6 +37,9 @@ add_executable(whitedns
   src/core/TrafficPack.cpp
   src/core/DeepPack.cpp
   src/core/ThreatFeeds.cpp
+  src/core/ScaleIntel.cpp
+  src/core/DnsMath.cpp
+  src/core/ChainTools.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)
@@ -52,6 +56,26 @@ if(OpenSSL_FOUND)
   target_compile_definitions(whitedns PRIVATE WHITEDNS_HAVE_OPENSSL)
 else()
   message(WARNING "WhiteDNS: OpenSSL not found. Debug build continues. A Release build requires it. Install libssl-dev, openssl-dev, or openssl-devel and reconfigure.")
+endif()
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(JSONCPP jsoncpp)
+endif()
+if(NOT JSONCPP_FOUND)
+  find_path(JSONCPP_INCLUDE_DIR json/json.h PATH_SUFFIXES jsoncpp)
+  find_library(JSONCPP_LIBRARY NAMES jsoncpp)
+  if(JSONCPP_INCLUDE_DIR AND JSONCPP_LIBRARY)
+    set(JSONCPP_FOUND TRUE)
+    set(JSONCPP_INCLUDE_DIRS ${JSONCPP_INCLUDE_DIR})
+    set(JSONCPP_LIBRARIES ${JSONCPP_LIBRARY})
+  endif()
+endif()
+if(JSONCPP_FOUND)
+  target_include_directories(whitedns PRIVATE ${JSONCPP_INCLUDE_DIRS})
+  target_link_libraries(whitedns PRIVATE ${JSONCPP_LIBRARIES})
+else()
+  message(FATAL_ERROR "jsoncpp not found. Install libjsoncpp-dev or jsoncpp-devel.")
 endif()
 
 add_executable(whitedns_test_wire tests/test_wire.cpp src/core/Wire.cpp src/DnsClient.cpp)

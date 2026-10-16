@@ -1,5 +1,6 @@
 #include "whitedns/core/DohClient.h"
 
+#include <cstdio>
 #include <cctype>
 #include <cstdlib>
 #include <sstream>
@@ -245,6 +246,44 @@ DohQueryResult doh_lookup(const std::string& qname, uint16_t qtype) {
         out.error.clear();
         if (!out.records.empty() || out.status == 0) return out;
     }
+    return out;
+}
+
+DohQueryResult doh_lookup_url(const std::string& endpoint, const std::string& qname, uint16_t qtype) {
+    DohQueryResult out;
+    out.endpoint = endpoint;
+    const char* type_name = "A";
+    if (qtype == DNS_TYPE_AAAA) type_name = "AAAA";
+    else if (qtype == DNS_TYPE_NS) type_name = "NS";
+    else if (qtype == DNS_TYPE_MX) type_name = "MX";
+    else if (qtype == DNS_TYPE_TXT) type_name = "TXT";
+    else if (qtype == DNS_TYPE_SOA) type_name = "SOA";
+    std::string url = endpoint;
+    if (url.find('?') == std::string::npos) url += "?";
+    else url += "&";
+    url += "name=" + url_encode(qname) + "&type=" + type_name;
+    std::string cmd = "curl -fsS --max-time 15 -H \"accept: application/dns-json\" \"" + url + "\" 2>/dev/null";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) { out.error = "doh/popen"; return out; }
+    std::string body;
+    char buf[4096];
+    while (fgets(buf, sizeof(buf), pipe)) body.append(buf);
+    pclose(pipe);
+    if (body.empty()) { out.error = "doh/empty"; return out; }
+    auto status_at = body.find("\"Status\"");
+    if (status_at != std::string::npos) out.status = std::atoi(body.c_str() + body.find(':', status_at) + 1);
+    size_t cursor = 0;
+    while (true) {
+        auto data_at = body.find("\"data\"", cursor);
+        if (data_at == std::string::npos) break;
+        auto q1 = body.find('"', body.find(':', data_at) + 1);
+        auto q2 = body.find('"', q1 + 1);
+        if (q1 == std::string::npos || q2 == std::string::npos) break;
+        std::string data = body.substr(q1 + 1, q2 - q1 - 1);
+        if (!data.empty()) out.records.push_back(record_from_doh(qtype, 0, data));
+        cursor = q2 + 1;
+    }
+    out.ok = true;
     return out;
 }
 

@@ -37,20 +37,33 @@ cmake --build build --config Release
 .\build\Release\whitedns.exe --help
 ```
 
-Needs a C++17 compiler and CMake. OpenSSL is detected automatically. If it is installed, DNSSEC signature checks and ODoH link against it. If it is not, the build still succeeds and `whitedns doctor` says signature verify is off.
+Needs a C++17 compiler, CMake, OpenSSL, and jsoncpp.
 
 ```bash
 # Debian, Ubuntu, Termux
-pkg install openssl-dev || sudo apt install libssl-dev
+sudo apt install cmake g++ libssl-dev libjsoncpp-dev
 # Fedora
-sudo dnf install openssl-devel
+sudo dnf install cmake gcc-c++ openssl-devel jsoncpp-devel
+# macOS
+brew install cmake openssl jsoncpp
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)"
 ```
+
+Windows with vcpkg:
+
+```powershell
+vcpkg install openssl:x64-windows jsoncpp:x64-windows
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+cmake --build build --config Release
+.\build\Release\whitedns.exe doctor
+```
+
+CI builds Linux, macOS, and Windows. A tag `v*` also uploads those three binaries.
 
 ## Use
 
 ```bash
-whitedns <command> [options] <name>
-whitedns arch
+whitedns
 whitedns doctor
 ```
 
@@ -88,10 +101,13 @@ whitedns doctor
 | `traffic-flow` | Agreement and drop |
 | `traffic-fault` | Observation faults |
 | `deep` | 50 computed label, TTL, EDNS, and fusion checks |
-| `feeds` | Pull URLhaus lists and match the name. Alias `intel-feed` |
-| `arch` | Command map |
+| `ct` | Certificate Transparency names from crt.sh |
+| `cname` | Follow CNAME to the terminal A |
+| `dnssec-path` | DS, DNSKEY, RRSIG path. Not readiness |
+| `enum` | `-e` wordlist. `-b` 110000. `-r` depth 1..5 |
+| `scale` | 30-feature threat snapshot and graph. Alias `intel-scale` |
 | `doctor` | What this build does and does not do |
-| `dns` `web` `enum` | Older surface checks |
+| `enum` | `-e` wordlist, `-b` 100000+, `-r` depth 1..5, `--dsl`, `--g4`, `--permute` |
 
 ```bash
 whitedns lookup <name> -s 1.1.1.1
@@ -99,10 +115,22 @@ whitedns resolve <name> -S 8.8.8.8,1.1.1.1,9.9.9.9
 whitedns dnssec-path <name>
 whitedns poison <name>
 whitedns detect <name>
-whitedns arch --color always
 ```
 
+Running `whitedns` with no arguments opens the dashboard.
+
 `--format json` for machine output. `--color never` or `NO_COLOR` turns colour off.
+
+## CI
+
+Yes. `whitedns audit` writes JSON and exits 2 on degraded, 3 on exposed.
+
+```bash
+chmod +x ci/scan.sh
+WHITEDNS_DOMAIN=google.com WHITEDNS_FAIL_ON=degraded ci/scan.sh
+```
+
+GitHub Actions: run the `domain-scan` workflow and set the domain and fail level. The JSON report is uploaded as `whitedns-audit`. Use it only on names you are allowed to query.
 
 Poison is confirmed only when DNSSEC contradiction, disjoint resolver answers, and authoritative disagreement all fire.
 

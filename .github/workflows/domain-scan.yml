@@ -1,0 +1,27 @@
+name: domain-scan
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: Name you are allowed to assess
+        required: true
+        default: google.com
+      fail_on:
+        description: warning, degraded, exposed, or never
+        required: true
+        default: degraded
+  schedule:
+    - cron: "0 6 * * 1"
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
+      - run: chmod +x ci/scan.sh
+      - run: WHITEDNS_DOMAIN="${{ github.event.inputs.domain || 'google.com' }}" WHITEDNS_FAIL_ON="${{ github.event.inputs.fail_on || 'degraded' }}" ci/scan.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: whitedns-audit
+          path: build/audit.json

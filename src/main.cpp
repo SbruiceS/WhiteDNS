@@ -5,6 +5,7 @@
 #include "whitedns/HttpScanner.h"
 #include "whitedns/PortScanner.h"
 #include "whitedns/SubdomainScanner.h"
+#include "whitedns/SubdomainDsl.h"
 #include "whitedns/core/ResolverEngine.h"
 #include "whitedns/core/Odoh.h"
 #include "whitedns/core/OdohFilter.h"
@@ -20,12 +21,18 @@
 #include "whitedns/core/TrafficPack.h"
 #include "whitedns/core/DeepPack.h"
 #include "whitedns/core/ThreatFeeds.h"
+#include "whitedns/core/ScaleIntel.h"
+#include "whitedns/core/DohClient.h"
+#include "whitedns/core/DnsMath.h"
+#include "whitedns/core/ChainTools.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -87,6 +94,9 @@ enum class Command {
     TrafficFault,
     Deep,
     Feeds,
+    Scale,
+    Ct,
+    Cname,
     Unknown
 };
 
@@ -113,6 +123,14 @@ struct Options {
     bool check_spf_dmarc = false;
     bool check_caa_policy = false;
     bool scan_subdomains = false;
+    bool brute_subdomains = false;
+    bool recursive_subdomains = false;
+    bool g4_generate = false;
+    bool permute_generate = false;
+    int enum_depth = 2;
+    int threads = 0;
+    int timeout_ms = 0;
+    std::string dsl_pattern;
     bool scan_web = false;
     bool discover_web_assets = false;
     bool http_header_scan = false;
@@ -127,6 +145,12 @@ struct Options {
     std::string scope;
     std::string odoh_proxy;
     std::string odoh_target = "odoh.cloudflare-dns.com";
+    std::string urlhaus_file;
+    std::string domains_file;
+    std::string vantage;
+    std::string config_path;
+    std::string diff_path;
+    bool multi_vantage = false;
     std::string arg2;
     std::vector<std::string> urls;
     std::vector<std::string> subdomain_candidates;
@@ -250,8 +274,6 @@ Command parse_command(const std::string& command) {
         return Command::Faults;
     if (normalized == "controls" || normalized == "vendor" || normalized == "vendor-audit")
         return Command::Controls;
-    if (normalized == "arch" || normalized == "architecture" || normalized == "commands")
-        return Command::Arch;
     if (normalized == "graph") return Command::Graph;
     if (normalized == "security") return Command::Security;
     if (normalized == "doctor") return Command::Doctor;
@@ -267,6 +289,9 @@ Command parse_command(const std::string& command) {
     if (normalized == "traffic-fault") return Command::TrafficFault;
     if (normalized == "deep") return Command::Deep;
     if (normalized == "feeds" || normalized == "intel-feed") return Command::Feeds;
+    if (normalized == "scale" || normalized == "intel-scale") return Command::Scale;
+    if (normalized == "ct" || normalized == "certs") return Command::Ct;
+    if (normalized == "cname" || normalized == "cname-chain") return Command::Cname;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -306,53 +331,70 @@ void enable_windows_vt() {
 
 void print_architecture() {
     auto row = [](const char* cmd, const char* layer, const char* note, const char* color) {
-        std::cout << "  " << style(cmd, color) << style(std::string(16 - std::string(cmd).size(), ' '), DIM)
-                  << style(layer, YELLOW) << "  " << style(note, DIM) << "\n";
+        std::string name(cmd);
+        std::string pad(name.size() >= 16 ? 1 : 16 - name.size(), ' ');
+        std::cout << "  " << style(cmd, color) << pad << style(layer, YELLOW) << "  " << style(note, DIM) << "\n";
+    };
+    auto panel = [](const char* title, const char* color) {
+        std::cout << "\n" << style(std::string("┌ ") + title, color) << "\n";
     };
     std::cout << style("╔══════════════════════════════════════════════════════════════╗", CYAN) << "\n";
-    std::cout << style("║  WhiteDNS command architecture                               ║", CYAN) << "\n";
-    std::cout << style("║  Cosinfotech Solutions  ·  S. Bruice Singh                   ║", CYAN) << "\n";
+    std::cout << style("║  WhiteDNS dashboard                                          ║", CYAN) << "\n";
+    std::cout << style("║  Cosinfotech Solutions  ·  S. Bruice Singh  ·  2.0.0        ║", CYAN) << "\n";
     std::cout << style("╚══════════════════════════════════════════════════════════════╝", CYAN) << "\n";
     std::cout << style("  TARGET → SCOPE → PLAN → TRANSPORT → RESOLVE → PARSE", MAGENTA) << "\n";
-    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n\n";
-    std::cout << style("  collect", BOLD) << "\n";
-    row("lookup", "wire/udp-tcp", "single resolver inventory", CYAN);
-    row("records", "wire", "record inventory alias", CYAN);
-    row("resolve", "compare", "multi-resolver, not auto-poison", CYAN);
-    row("compare", "compare", "alias of resolve", CYAN);
+    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n";
+    std::cout << style("  posture  ", BOLD) << style("ok", GREEN) << "  " << style("warning", YELLOW)
+              << "  " << style("degraded", YELLOW) << "  " << style("exposed", RED) << "\n";
+    std::cout << style("  exit     ", BOLD) << "0 ok   1 usage   2 degraded   3 exposed   4 warning\n";
+    panel("collect", CYAN);
+    row("lookup", "wire", "one resolver", CYAN);
+    row("records", "wire", "inventory alias", CYAN);
+    row("resolve", "compare", "multi-resolver", CYAN);
     row("trace", "delegation", "iterative NS walk", CYAN);
-    row("baseline", "cache/rtt", "TTL observation + RTT", CYAN);
-    std::cout << style("  privacy", BOLD) << "\n";
-    row("odoh", "RFC 9230", "HPKE + relay, oblivious split", BLUE);
-    row("odoh-filter", "policy", "collusion, suite, padding", BLUE);
-    row("odoh-policy", "112 controls", "authorized-use scan", BLUE);
-    row("odoh-leak", "M01–M27", "what each party can see", BLUE);
-    std::cout << style("  validation", BOLD) << "\n";
-    row("dnssec", "DS→DNSKEY", "crypto digest check", GREEN);
-    row("dnssec-path", "path", "RRSIG / NSEC / NSEC3 inventory", GREEN);
-    row("intel", "RFC/SANS", "SOA MX SPF DMARC CAA", GREEN);
-    std::cout << style("  detection", BOLD) << "\n";
-    row("poison", "3-gate", "DNSSEC ∧ disjoint ∧ AA", RED);
-    row("threats", "taxonomy", "list | categories | info | validate", RED);
-    row("detect", "rules", "evaluate live observations", RED);
-    row("explain", "whitebox", "why a rule exists", RED);
-    row("research", "lab", "same detect, experimental mark", RED);
-    row("faults", "rollup", "FINDING + ANOMALY only", RED);
-    row("controls", "vendors", "Cisco/ITU/Nokia/HP/Dell gaps", RED);
-    row("graph", "fusion", "A/NS edges with provenance", CYAN);
-    row("security", "reason", "fusion plus poison gates", RED);
-    row("report", "evidence", "security and graph", GREEN);
-    row("doctor", "self", "pipeline check, no network", YELLOW);
-    row("audit", "frameworks", "SANS MITRE RFC IANA ISACA", RED);
-    std::cout << style("  surface", BOLD) << "\n";
-    row("dns", "classic", "flags -r -n -w -c -x -A -H", YELLOW);
-    row("web", "http", "headers and assets", YELLOW);
-    row("enum", "labels", "scoped subdomain candidates", YELLOW);
-    row("firewall", "posture", "DNS + web signals", YELLOW);
-    row("enterprise", "profile", "combined scan", YELLOW);
-    std::cout << style("  arch", BOLD) << "  " << style("this map", DIM) << "\n";
-    std::cout << "\n" << style("  confirmation", BOLD) << "  poison = dnssec contradiction AND resolver disjoint AND AA disagree\n";
-    std::cout << style("  color", BOLD) << "  --color always | auto | never   NO_COLOR disables\n";
+    row("baseline", "cache", "TTL and RTT", CYAN);
+    panel("privacy", BLUE);
+    row("odoh", "RFC 9230", "HPKE plus relay", BLUE);
+    row("odoh-leak", "M01-M27", "what each party sees", BLUE);
+    panel("validation", GREEN);
+    row("dnssec-path", "path", "DS DNSKEY RRSIG", GREEN);
+    row("intel", "RFC/SANS", "SOA MX SPF CAA", GREEN);
+    row("wire-check", "parser", "bounds self-test", GREEN);
+    panel("detection", RED);
+    row("poison", "3-gate", "DNSSEC and disjoint and AA", RED);
+    row("detect", "rules", "taxonomy on observations", RED);
+    row("faults", "rollup", "findings only", RED);
+    row("feeds", "urlhaus", "on-demand list match", RED);
+    row("scale", "S01-S30", "fusion graph poison", MAGENTA);
+    row("deep", "H01-H50", "label TTL EDNS fusion", MAGENTA);
+    panel("traffic", YELLOW);
+    row("traffic", "T01-T90", "observe pack, alias flow", YELLOW);
+    row("traffic-route", "graph", "path hub components", YELLOW);
+    row("assess", "authorized", "dnssec poison faults", GREEN);
+    row("summary", "card", "fused A and agreement", CYAN);
+    panel("ops", MAGENTA);
+    row("audit", "frameworks", "JSON, --fail-on", RED);
+    row("doctor", "self", "no network", YELLOW);
+    std::cout << "\n" << style("  confirmation", BOLD)
+              << "  poison only if DNSSEC contradiction, disjoint resolvers, and AA disagree\n";
+}
+
+void print_usage() {
+    print_architecture();
+    std::cout << "\n" << header_label("Usage") << "\n";
+    std::cout << "  " << style("whitedns <command> [options] <name>", GREEN) << "\n";
+    std::cout << "  " << style("whitedns audit --format json --fail-on degraded <name>", GREEN) << "\n\n";
+    std::cout << header_label("Also") << "\n";
+    std::cout << "  dns web enum firewall enterprise odoh-filter odoh-policy\n";
+    std::cout << "  threats explain research controls graph security report dga\n";
+    std::cout << "  traffic-proto traffic-flow traffic-fault\n\n";
+    std::cout << header_label("Output") << "\n";
+    std::cout << "  -j --format json    --color auto|always|never    --fail-on warning|degraded|exposed|never\n";
+    std::cout << "  -e --subdomains     enum. -b brute. -r recursive. --depth 1..5\n";
+    std::cout << "  --config <file>     whitedns.yaml. --fail-on high|medium|low. --diff <prev.json>\n";
+    std::cout << "  --vantages          query 8.8.8.8 1.1.1.1 9.9.9.9 208.67.222.222. -s https:// is DoH\n";
+    std::cout << "  -s <server>  -S <servers>  -t <types>  --workpaper <file>\n\n";
+    std::cout << "Linux | Windows | macOS | Termux    Cosinfotech Solutions    S. Bruice Singh\n";
 }
 
 void print_version() {
@@ -360,108 +402,6 @@ void print_version() {
     std::cout << "DNS security, forensics and reconnaissance platform\n";
     std::cout << "Developer: Cosinfotech Solutions\n";
     std::cout << "Author: S. Bruice Singh\n";
-}
-
-void print_usage() {
-    std::cout << style("WhiteDNS", BOLD) << "  " << style("1.1.0", CYAN) << "  [" << platform_name() << "]\n";
-    std::cout << style("Cross-platform DNS security and fault-finding CLI", CYAN) << "\n";
-    std::cout << "Linux | Windows | macOS | Termux   Author: SBruice Singh\n";
-    std::cout << style("============================================================", YELLOW) << "\n\n";
-    std::cout << header_label("Usage:") << "\n";
-    std::cout << "  " << style("whitedns <command> [options] <domain|url>", GREEN) << "\n";
-    std::cout << "  " << style("whitedns help [command]", GREEN) << "\n\n";
-    std::cout << header_label("Commands:") << "\n";
-    std::cout << "  dns           Perform DNS security and resolver comparison checks\n";
-    std::cout << "  web           Probe HTTP and HTTPS endpoints, headers, and asset paths\n";
-    std::cout << "  enum          Run subdomain enumeration against a target domain\n";
-    std::cout << "  firewall      Run a firewall risk assessment using DNS and web signals\n";
-    std::cout << "  enterprise    Run a comprehensive enterprise scan profile\n";
-    std::cout << "  audit         SANS / MITRE ATT&CK / RFC / IANA / ISACA framework audit\n";
-    std::cout << "  lookup        Phase-1 resolver engine query (UDP/TCP, EDNS)\n";
-    std::cout << "  records       Same as lookup; print record inventory\n";
-    std::cout << "  resolve       Multi-resolver compare (not auto-classified as poisoning)\n";
-    std::cout << "  compare       Alias of resolve\n";
-    std::cout << "  trace         Iterative NS walk using the Phase-1 engine\n";
-    std::cout << "  dnssec        Cryptographic DS→DNSKEY audit slice\n";
-    std::cout << "  odoh          RFC 9230 Oblivious DoH (HPKE + production relay)\n";
-    std::cout << "  odoh-filter   Deep ODoH policy: collusion, leak, suite, padding\n";
-    std::cout << "  odoh-policy   112-control authorized-use ODoH security policy scan\n";
-    std::cout << "  odoh-leak     27 leakage models (enterprise: google/facebook/microsoft/nasa)\n";
-    std::cout << "  baseline      Comparative resolvers, TTL cache, RTT baselines\n";
-    std::cout << "  intel         RFC/SANS resolver models — extract zone/mail/DNSSEC facts\n";
-    std::cout << "  dnssec-path   DS→DNSKEY + RRSIG/NSEC/NSEC3 inventory\n";
-    std::cout << "  poison        Multi-resolver A + DNSSEC; disagreement is not poisoning\n";
-    std::cout << "  threats       list | categories | info <ID> | validate\n";
-    std::cout << "  detect        Run taxonomy evaluators on a zone\n";
-    std::cout << "  explain       Explain a rule ID\n";
-    std::cout << "  research      Raw observations + experimental detectors\n";
-    std::cout << "  faults        Aggregate FINDING/ANOMALY + poison gates (defensive)\n";
-    std::cout << style("  controls", RED) << "      Cisco/ITU/Nokia/HP/Dell defensive control gaps\n";
-    std::cout << style("  arch", MAGENTA) << "          command architecture map (colour)\n";
-    std::cout << style("  graph", CYAN) << "         fused A/NS graph with provenance\n";
-    std::cout << style("  security", RED) << "      fusion + poison gates\n";
-    std::cout << style("  report", GREEN) << "       security and graph together\n";
-    std::cout << style("  doctor", YELLOW) << "       pipeline self-check\n";
-    std::cout << style("  dga", MAGENTA) << "          lexical screen, fixture accuracy printed\n";
-    std::cout << style("  wire-check", CYAN) << "    strict parser self-test\n";
-    std::cout << style("  assess", GREEN) << "       authorized assessment: dnssec, poison gates, faults\n";
-    std::cout << style("  summary", CYAN) << "      fused A/NS, agreement, lexical screen\n";
-    std::cout << style("  traffic", YELLOW) << "      90-check observe pack. alias flow\n";
-    std::cout << style("  traffic-proto", YELLOW) << " protocol counts\n";
-    std::cout << style("  traffic-route", YELLOW) << " graph route\n";
-    std::cout << style("  traffic-flow", YELLOW) << "  agreement and drop\n";
-    std::cout << style("  traffic-fault", YELLOW) << " observation faults\n\n";
-    std::cout << "Developer: Cosinfotech Solutions    Author: S. Bruice Singh\n\n";
-    std::cout << "Global options:\n";
-    std::cout << "  -h, --help      Show help\n";
-    std::cout << "  --version       Show version and platform\n";
-    std::cout << "  -v              Verbose output\n";
-    std::cout << "  -q, --quiet     Findings only (human mode)\n";
-    std::cout << "  -j              JSON output (same as --format json)\n";
-    std::cout << "  --format <fmt>  human | json\n";
-    std::cout << "  --color <mode>  auto | always | never  (NO_COLOR supported)\n";
-    std::cout << "  --fail-on <lvl> warning | degraded | exposed | never\n";
-    std::cout << "  --workpaper <file>  Write ISACA COBIT JSON workpaper\n";
-    std::cout << "  --profile <name>  Scan profile: standard, enterprise\n";
-    std::cout << "  -s <server>     DNS server hostname/IP. Default: 8.8.8.8\n";
-    std::cout << "  -S <servers>    Compare comma-separated DNS servers\n";
-    std::cout << "  -t <types>      Record types: A,AAAA,NS,MX,TXT,SOA,DNSKEY,RRSIG,CAA,ANY\n";
-    std::cout << "  -P <targets>    Comma-separated port scan targets\n";
-    std::cout << "  -R <ports>      Comma-separated TCP ports\n\n";
-    std::cout << "DNS options:\n";
-    std::cout << "  -r              DNSSEC readiness\n";
-    std::cout << "  -o              Open resolver check\n";
-    std::cout << "  -n              NXDOMAIN redirect detection\n";
-    std::cout << "  -a              Amplification signal\n";
-    std::cout << "  -w              Wildcard DNS\n";
-    std::cout << "  -x              Suspicious TXT tunneling patterns\n";
-    std::cout << "  -b              DNS rebinding signal\n";
-    std::cout << "  -z              AXFR zone transfer exposure\n";
-    std::cout << "  -c              Cache poisoning signal\n";
-    std::cout << "  -f              Fast-flux signal\n";
-    std::cout << "  -A              DNS spoofing signal\n";
-    std::cout << "  -H              DNS hijacking signal\n";
-    std::cout << "  --spf-dmarc     SPF/DMARC policy check\n";
-    std::cout << "  --caa           CAA policy check\n\n";
-    std::cout << "Enumeration options:\n";
-    std::cout << "  -D <list|file>  Comma-separated subdomain candidates or wordlist file\n";
-    std::cout << "  --subdomains    Enable built-in subdomain discovery\n\n";
-    std::cout << "Web options:\n";
-    std::cout << "  -U <urls>      Comma-separated URLs or hosts to scan\n";
-    std::cout << "  --assets        Discover common web asset paths\n";
-    std::cout << "  --http-headers  Collect HTTP headers\n";
-    std::cout << "  --https-probe  Probe HTTPS connectivity\n\n";
-    std::cout << "Examples:\n";
-    std::cout << "  whitedns dns -j -r -n -w -x -t A,AAAA,NS,MX,TXT google.com\n";
-    std::cout << "  whitedns web -U https://google.com --assets --http-headers\n";
-    std::cout << "  whitedns enum -D subdomains.txt example.com\n";
-    std::cout << "  whitedns enterprise google.com\n";
-    std::cout << "  whitedns audit --format json --fail-on degraded google.com\n";
-    std::cout << "  WHITEDNS_RESOLVERS=8.8.8.8,1.1.1.1 whitedns audit google.com\n\n";
-    std::cout << "Termux: pkg install clang cmake; cmake -B build && cmake --build build\n";
-    std::cout << "Windows: cmake -B build && cmake --build build --config Release\n";
-    std::cout << "macOS/Linux: cmake -B build && cmake --build build\n";
-    std::cout << "Exit codes: 0 ok, 1 usage, 2 degraded, 3 exposed, 4 warning-threshold\n";
 }
 
 bool parse_options(int argc, char* argv[], Options& opt) {
@@ -549,11 +489,14 @@ bool parse_options(int argc, char* argv[], Options& opt) {
             opt.detect_dns_tunneling = true;
         } else if (arg == "-p") {
             opt.proxy_detection = true;
+        } else if (arg == "--rebinding") {
+            opt.dns_rebinding_detection = true;
         } else if (arg == "-f") {
             opt.fast_flux_detection = true;
             add_query_type(opt, DNS_TYPE_A);
-        } else if (arg == "-b") {
-            opt.dns_rebinding_detection = true;
+        } else if (arg == "--brute" || arg == "-b") {
+            opt.scan_subdomains = true;
+            opt.brute_subdomains = true;
         } else if (arg == "-j") {
             opt.output_json = true;
         } else if (arg == "-z") {
@@ -571,8 +514,83 @@ bool parse_options(int argc, char* argv[], Options& opt) {
         } else if (arg == "--caa") {
             opt.check_caa_policy = true;
             add_query_type(opt, DNS_TYPE_CAA);
-        } else if (arg == "--subdomains") {
+        } else if (arg == "--subdomains" || arg == "-e") {
             opt.scan_subdomains = true;
+        } else if (arg == "--recursive" || arg == "-r") {
+            opt.scan_subdomains = true;
+            opt.recursive_subdomains = true;
+        } else if (arg == "--depth") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --depth\n";
+                return false;
+            }
+            opt.enum_depth = std::stoi(argv[++i]);
+            if (opt.enum_depth < 1) opt.enum_depth = 1;
+            if (opt.enum_depth > 5) opt.enum_depth = 5;
+            opt.scan_subdomains = true;
+            opt.recursive_subdomains = true;
+        } else if (arg == "--dsl") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --dsl\n";
+                return false;
+            }
+            opt.dsl_pattern = argv[++i];
+            opt.scan_subdomains = true;
+        } else if (arg == "--g4") {
+            opt.g4_generate = true;
+            opt.scan_subdomains = true;
+        } else if (arg == "--permute") {
+            opt.permute_generate = true;
+            opt.scan_subdomains = true;
+        } else if (arg == "--urlhaus" || arg == "--feed") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after " << arg << "\n";
+                return false;
+            }
+            opt.urlhaus_file = argv[++i];
+        } else if (arg == "--domains") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --domains\n";
+                return false;
+            }
+            opt.domains_file = argv[++i];
+        } else if (arg == "--vantage") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --vantage\n";
+                return false;
+            }
+            opt.vantage = argv[++i];
+            opt.dns_server = opt.vantage;
+        } else if (arg == "--threads") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --threads\n";
+                return false;
+            }
+            opt.threads = std::stoi(argv[++i]);
+            if (opt.threads < 1) opt.threads = 1;
+            if (opt.threads > 64) opt.threads = 64;
+        } else if (arg == "--timeout") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --timeout\n";
+                return false;
+            }
+            opt.timeout_ms = std::stoi(argv[++i]);
+            if (opt.timeout_ms < 100) opt.timeout_ms = 100;
+            if (opt.timeout_ms > 30000) opt.timeout_ms = 30000;
+        } else if (arg == "--config") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --config\n";
+                return false;
+            }
+            opt.config_path = argv[++i];
+        } else if (arg == "--diff") {
+            if (i + 1 >= argc) {
+                std::cerr << "Require argument after --diff\n";
+                return false;
+            }
+            opt.diff_path = argv[++i];
+        } else if (arg == "--vantages") {
+            opt.multi_vantage = true;
         } else if (arg == "--assets") {
             opt.discover_web_assets = true;
         } else if (arg == "--http-headers") {
@@ -647,6 +665,128 @@ bool parse_options(int argc, char* argv[], Options& opt) {
     }
 
     return true;
+}
+
+void load_config(Options& opt) {
+    std::string path = opt.config_path;
+    if (path.empty()) {
+        if (std::ifstream("whitedns.yaml").good()) path = "whitedns.yaml";
+        else return;
+    }
+    std::ifstream in(path);
+    if (!in) {
+        std::cerr << "config/read-fail " << path << "\n";
+        return;
+    }
+    std::string line;
+    while (std::getline(in, line)) {
+        auto hash = line.find('#');
+        if (hash != std::string::npos) line = line.substr(0, hash);
+        auto colon = line.find(':');
+        if (colon == std::string::npos) continue;
+        std::string key = lowercase(line.substr(0, colon));
+        std::string val = line.substr(colon + 1);
+        auto a = val.find_first_not_of(" \t");
+        if (a == std::string::npos) continue;
+        val = val.substr(a);
+        if (!val.empty() && val.front() == '"' && val.back() == '"') val = val.substr(1, val.size() - 2);
+        if (key == "resolvers" && opt.dns_servers_multi.empty() && opt.dns_server.empty())
+            opt.dns_servers_multi = split(val, ',');
+        else if (key == "types" && opt.query_types.size() == 5) {
+            opt.query_types.clear();
+            for (const auto& t : split(val, ',')) {
+                int type = dns_type_from_string(t);
+                if (type >= 0) opt.query_types.push_back(static_cast<uint16_t>(type));
+            }
+        } else if ((key == "feed" || key == "urlhaus") && opt.urlhaus_file.empty())
+            opt.urlhaus_file = val;
+        else if (key == "fail_on" && opt.fail_on == "exposed")
+            opt.fail_on = lowercase(val);
+        else if (key == "threads" && opt.threads == 0)
+            opt.threads = std::stoi(val);
+        else if (key == "timeout" && opt.timeout_ms == 0)
+            opt.timeout_ms = std::stoi(val);
+        else if (key == "vantage" && opt.vantage.empty()) {
+            opt.vantage = val;
+            opt.dns_server = val;
+        }
+    }
+    if (!opt.config_path.empty()) std::cout << "config " << path << "\n";
+}
+
+int severity_rank(const std::string& status) {
+    if (status == "fail" || status == "error" || status == "exposed") return 3;
+    if (status == "warning" || status == "degraded") return 2;
+    if (status == "info" || status == "low") return 1;
+    return 0;
+}
+
+int fail_rank(const std::string& gate) {
+    if (gate == "high" || gate == "fail" || gate == "error" || gate == "exposed") return 3;
+    if (gate == "medium" || gate == "warning" || gate == "degraded") return 2;
+    if (gate == "low" || gate == "info") return 1;
+    return 99;
+}
+
+void write_sarif(const std::string& path, const Json::Value& report) {
+    std::ofstream out(path);
+    if (!out) { std::cerr << "Cannot write " << path << "\n"; return; }
+    out << "{\n  \"version\": \"2.1.0\",\n  \"$schema\": \"https://json.schemastore.org/sarif-2.1.0.json\",\n";
+    out << "  \"runs\": [{\n    \"tool\": {\"driver\": {\"name\": \"WhiteDNS\", \"version\": \"2.0.0\"}},\n    \"results\": [\n";
+    const auto& checks = report["checks"];
+    bool first = true;
+    for (unsigned i = 0; i < checks.size(); ++i) {
+        std::string status = checks[i]["status"].asString();
+        if (status == "pass" || status == "ok") continue;
+        std::string level = (status == "fail" || status == "error") ? "error" : "warning";
+        if (!first) out << ",\n";
+        first = false;
+        out << "      {\"ruleId\": \"" << checks[i]["name"].asString()
+            << "\", \"level\": \"" << level
+            << "\", \"message\": {\"text\": \"" << checks[i]["message"].asString() << "\"}}";
+    }
+    out << "\n    ]\n  }]\n}\n";
+}
+
+void write_html(const std::string& path, const Json::Value& report) {
+    std::ofstream out(path);
+    if (!out) { std::cerr << "Cannot write " << path << "\n"; return; }
+    out << "<!doctype html><meta charset=utf-8><title>WhiteDNS " << report["domain"].asString()
+        << "</title><style>body{font-family:sans-serif} .fail{color:#b00} .warning{color:#a60}</style>\n";
+    out << "<h1>WhiteDNS " << report["domain"].asString() << "</h1>\n<ul>\n";
+    const auto& checks = report["checks"];
+    for (unsigned i = 0; i < checks.size(); ++i) {
+        std::string status = checks[i]["status"].asString();
+        out << "<li class=" << status << "><b>" << checks[i]["name"].asString()
+            << "</b> " << status << " — " << checks[i]["message"].asString() << "</li>\n";
+    }
+    out << "</ul>\n";
+}
+
+void print_diff(const std::string& path, const Json::Value& current) {
+    std::ifstream in(path);
+    if (!in) {
+        std::cout << "diff previous=missing\n";
+        return;
+    }
+    std::stringstream buf;
+    buf << in.rdbuf();
+    std::string prev = buf.str();
+    std::cout << "diff against " << path << "\n";
+    int news = 0;
+    const auto& cur_checks = current["checks"];
+    for (unsigned i = 0; i < cur_checks.size(); ++i) {
+        const auto& c = cur_checks[i];
+        std::string id = c["name"].asString();
+        if (id.empty()) id = c["title"].asString();
+        std::string status = c["status"].asString();
+        std::string needle = id;
+        if (prev.find(needle) == std::string::npos) {
+            std::cout << "  new " << id << " status=" << status << "\n";
+            news++;
+        }
+    }
+    std::cout << "diff new=" << news << "\n";
 }
 
 std::vector<std::string> servers_to_use(const Options& opt) {
@@ -852,8 +992,8 @@ int main(int argc, char* argv[]) {
     enable_windows_vt();
 
     if (argc < 2) {
-        print_usage();
-        return 1;
+        print_architecture();
+        return 0;
     }
 
     Options opt;
@@ -874,6 +1014,10 @@ int main(int argc, char* argv[]) {
         if (const char* env = std::getenv("WHITEDNS_RESOLVERS")) {
             opt.dns_servers_multi = split(env, ',');
         }
+    }
+    load_config(opt);
+    if (opt.multi_vantage && opt.dns_servers_multi.empty() && opt.dns_server.empty()) {
+        opt.dns_servers_multi = {"8.8.8.8", "1.1.1.1", "9.9.9.9", "208.67.222.222"};
     }
 
     bool run_port_scan = !opt.port_scan_targets.empty() || !opt.port_scan_ports.empty();
@@ -955,14 +1099,16 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Threats || opt.command == Command::Detect ||
                   opt.command == Command::Explain || opt.command == Command::Research ||
                   opt.command == Command::Faults || opt.command == Command::Controls ||
-                  opt.command == Command::Arch || opt.command == Command::Graph ||
+                  opt.command == Command::Graph ||
                   opt.command == Command::Security || opt.command == Command::Doctor ||
                   opt.command == Command::Report || opt.command == Command::Dga ||
                   opt.command == Command::WireCheck || opt.command == Command::Assess ||
                   opt.command == Command::Summary || opt.command == Command::Traffic ||
                   opt.command == Command::TrafficProto || opt.command == Command::TrafficRoute ||
                   opt.command == Command::TrafficFlow || opt.command == Command::TrafficFault ||
-                  opt.command == Command::Deep || opt.command == Command::Feeds;
+                  opt.command == Command::Deep || opt.command == Command::Feeds ||
+                  opt.command == Command::Scale || opt.command == Command::Ct ||
+                  opt.command == Command::Cname;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1026,19 +1172,58 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         if (opt.command == Command::Feeds) {
+            if (opt.urlhaus_file.empty()) {
+                const char* env = std::getenv("WHITEDNS_URLHAUS");
+                if (env && *env) opt.urlhaus_file = env;
+            }
+            std::vector<std::string> names;
+            if (!opt.domains_file.empty()) {
+                std::ifstream in(opt.domains_file);
+                std::string line;
+                while (std::getline(in, line)) {
+                    if (!line.empty() && line[0] != '#') names.push_back(line);
+                }
+            } else if (!opt.domain.empty()) {
+                names.push_back(opt.domain);
+            }
+            if (names.empty()) {
+                std::cerr << "Name or --domains file required.\n";
+                return 1;
+            }
+            if (names.size() == 1 && opt.domains_file.empty()) {
+                core::print_threat_feeds(names[0], opt.urlhaus_file);
+                return 0;
+            }
+            std::cout << "{\n  \"feed\": \"" << opt.urlhaus_file << "\",\n  \"results\": [\n";
+            for (size_t n = 0; n < names.size(); ++n) {
+                int kind = core::feed_match(names[n], opt.urlhaus_file);
+                const char* match = kind == 1 ? "exact" : kind == 2 ? "parent" : kind == 3 ? "child" : kind < 0 ? "read-fail" : "no";
+                std::cout << "    {\"name\":\"" << names[n] << "\",\"hit\":" << (kind > 0 ? "true" : "false")
+                          << ",\"match\":\"" << match << "\"}" << (n + 1 == names.size() ? "\n" : ",\n");
+            }
+            std::cout << "  ]\n}\n";
+            return 0;
+        }
+        if (opt.command == Command::Scale) {
             if (opt.domain.empty()) {
                 std::cerr << "Name required.\n";
                 return 1;
             }
-            core::print_threat_feeds(opt.domain);
+            core::print_scale_intel(opt.domain, opt.output_json || opt.format == "json");
+            return 0;
+        }
+        if (opt.command == Command::Ct) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_ct(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Cname) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_cname_chain(opt.domain, opt.dns_server.empty() ? "8.8.8.8" : opt.dns_server);
             return 0;
         }
         if (opt.command == Command::Dga) {
             core::print_dga(opt.domain.empty() ? "unset" : opt.domain);
-            return 0;
-        }
-        if (opt.command == Command::Arch) {
-            print_architecture();
             return 0;
         }
         if (opt.command == Command::Threats) {
@@ -1117,7 +1302,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         if (opt.command == Command::Baseline) {
-            whitedns::core::ResolverEngine engine;
+            whitedns::core::ResolverEngine engine(std::chrono::milliseconds(opt.timeout_ms > 0 ? opt.timeout_ms : 2500));
             auto resolvers = servers_to_use(opt);
             if (resolvers.size() < 2) {
                 resolvers = {"8.8.8.8", "1.1.1.1", "9.9.9.9"};
@@ -1135,6 +1320,13 @@ int main(int argc, char* argv[]) {
             }
             auto cs = engine.cache_stats();
             std::cout << "Cache: hits=" << cs.hits << " misses=" << cs.misses << " stores=" << cs.stores << "\n";
+            std::vector<double> rtts;
+            for (const auto& b : rows) rtts.push_back(static_cast<double>(b.avg_ms));
+            auto scored = core::score_name(opt.domain, rtts);
+            std::cout << "entropy=" << scored.entropy
+                      << " kalman_rtt_ms=" << scored.smoothed_rtt_ms
+                      << " residual_sq=" << scored.residual_sq
+                      << " confidence=" << scored.confidence << "\n";
             return 0;
         }
         if (opt.command == Command::OdohLeak) {
@@ -1183,7 +1375,7 @@ int main(int argc, char* argv[]) {
             }
             return 0;
         }
-        whitedns::core::ResolverEngine engine;
+        whitedns::core::ResolverEngine engine(std::chrono::milliseconds(opt.timeout_ms > 0 ? opt.timeout_ms : 2500));
         auto resolvers = servers_to_use(opt);
         uint16_t qtype = opt.query_types.empty() ? DNS_TYPE_A : opt.query_types.front();
         if (opt.command == Command::Trace) {
@@ -1221,7 +1413,29 @@ int main(int argc, char* argv[]) {
             for (const auto& obs : set) print_obs(obs);
             return 0;
         }
+        if (resolvers.front().rfind("https://", 0) == 0) {
+            auto d = core::doh_lookup_url(resolvers.front(), opt.domain, qtype);
+            std::cout << "doh " << opt.domain << " @" << resolvers.front()
+                      << " ok=" << (d.ok ? "yes" : "no") << " status=" << d.status << "\n";
+            for (const auto& rec : d.records) std::cout << "  ANS " << rec.value << "\n";
+            if (!d.ok) std::cout << "  error " << d.error << "\n";
+            return d.ok ? 0 : 5;
+        }
         print_obs(engine.query(opt.domain, qtype, resolvers.front(), whitedns::core::TransportKind::Udp, opt.dnssec_readiness));
+        if (opt.multi_vantage && resolvers.size() > 1) {
+            std::set<std::string> answers;
+            for (const auto& r : resolvers) {
+                auto obs = engine.query(opt.domain, qtype, r);
+                std::vector<std::string> vals;
+                for (const auto& rec : obs.message.answers) vals.push_back(rec.value);
+                std::sort(vals.begin(), vals.end());
+                std::string joined;
+                for (const auto& v : vals) joined += v + ",";
+                answers.insert(joined);
+                std::cout << "vantage @" << r << " answers=" << joined << "\n";
+            }
+            std::cout << "vantage agreement=" << (answers.size() <= 1 ? "yes" : "no") << "\n";
+        }
         return 0;
     }
 
@@ -1253,7 +1467,13 @@ int main(int argc, char* argv[]) {
             }
         }
         if (audit.posture == "exposed") return 3;
-        if (audit.posture == "degraded" && (opt.fail_on == "degraded" || opt.fail_on == "warning")) return 2;
+        if (audit.posture == "degraded" && (opt.fail_on == "degraded" || opt.fail_on == "warning" || opt.fail_on == "medium")) return 2;
+        int gate = fail_rank(opt.fail_on);
+        if (gate < 99) {
+            for (const auto& f : audit.findings) {
+                if (severity_rank(f.status) >= gate) return 1;
+            }
+        }
         return 0;
     }
 
@@ -1289,9 +1509,50 @@ int main(int argc, char* argv[]) {
     }
 
     if (opt.scan_subdomains) {
-        SubdomainScanner scanner(opt.domain, opt.subdomain_candidates, opt.dns_server.empty() ? "8.8.8.8" : opt.dns_server);
-        scanner.run();
+        if (!opt.dsl_pattern.empty()) {
+            auto gen = expand_dsl(opt.dsl_pattern);
+            opt.subdomain_candidates.insert(opt.subdomain_candidates.end(), gen.begin(), gen.end());
+            std::cout << "dsl  generated=" << gen.size() << "\n";
+        }
+        if (opt.g4_generate) {
+            auto gen = generate_g4();
+            opt.subdomain_candidates.insert(opt.subdomain_candidates.end(), gen.begin(), gen.end());
+            std::cout << "g4  generated=" << gen.size() << "  (4-factor product, not a manifold)\n";
+        }
+        if (opt.permute_generate) {
+            auto gen = generate_permutations();
+            opt.subdomain_candidates.insert(opt.subdomain_candidates.end(), gen.begin(), gen.end());
+            std::cout << "permute  generated=" << gen.size() << "\n";
+        }
+        if (opt.subdomain_candidates.empty()) {
+            const char* brute_paths[] = {"share/subdomains-brute.txt", "../share/subdomains-brute.txt", "/usr/share/whitedns/subdomains-brute.txt"};
+            const char* enum_paths[] = {"share/subdomains.txt", "../share/subdomains.txt", "/usr/share/whitedns/subdomains.txt"};
+            const char** paths = opt.brute_subdomains ? brute_paths : enum_paths;
+            int npaths = 3;
+            for (int i = 0; i < npaths; ++i) {
+                if (load_subdomain_candidates(paths[i], opt.subdomain_candidates)) break;
+            }
+        }
+        int workers = opt.threads > 0 ? opt.threads : (opt.brute_subdomains ? 32 : 16);
+        int timeout = opt.timeout_ms > 0 ? opt.timeout_ms : (opt.brute_subdomains ? 800 : 2000);
+        std::cout << (opt.brute_subdomains ? "brute" : "enum")
+                  << "  candidates=" << opt.subdomain_candidates.size()
+                  << "  wildcard filter on  workers=" << workers
+                  << (opt.recursive_subdomains ? "  recursive depth=" + std::to_string(opt.enum_depth) : "")
+                  << "\n";
+        SubdomainScanner scanner(opt.domain, opt.subdomain_candidates,
+                                 opt.dns_server.empty() ? "8.8.8.8" : opt.dns_server,
+                                 timeout, workers);
+        if (opt.recursive_subdomains) scanner.run_recursive(opt.enum_depth);
+        else scanner.run();
         subdomain_results = scanner.results();
+        int hits = 0;
+        for (const auto& r : subdomain_results)
+            if (r.resolved) hits++;
+        double rate = subdomain_results.empty() ? 0.0 : static_cast<double>(hits) / subdomain_results.size();
+        std::cout << "enum  queried=" << subdomain_results.size() << " hits=" << hits
+                  << " hit_rate=" << rate
+                  << " apex_entropy=" << core::shannon_entropy(opt.domain) << "\n";
         subdomain_json = scanner.to_json();
     }
 
@@ -1314,8 +1575,16 @@ int main(int argc, char* argv[]) {
         firewall_json = firewall_assessment_to_json(assess_firewall_risk(checks, responses, web_json, port_scan_json, subdomain_json));
     }
 
-    if (opt.output_json) {
-        std::cout << build_json_report(opt, responses, checks, subdomain_json, web_json, port_scan_json, firewall_json).toStyledString();
+    if (opt.output_json || opt.format == "sarif" || opt.format == "html") {
+        auto report = build_json_report(opt, responses, checks, subdomain_json, web_json, port_scan_json, firewall_json);
+        if (opt.format == "sarif") write_sarif(opt.arg2.empty() ? "whitedns.sarif" : opt.arg2, report);
+        else if (opt.format == "html") write_html(opt.arg2.empty() ? "whitedns.html" : opt.arg2, report);
+        else std::cout << report.toStyledString();
+        if (!opt.diff_path.empty()) print_diff(opt.diff_path, report);
+        int gate = fail_rank(opt.fail_on);
+        if (gate < 99) {
+            for (const auto& c : checks) if (severity_rank(c.status) >= gate) return 1;
+        }
     } else {
         print_human_report(opt, responses, checks, subdomain_results, probe_results, asset_results, scan_results, firewall_json);
     }

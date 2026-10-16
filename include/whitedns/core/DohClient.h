@@ -19,6 +19,7 @@ struct DohQueryResult {
 
 // HTTPS DNS-JSON fallback when UDP resolvers strip or hide DS/DNSKEY.
 DohQueryResult doh_lookup(const std::string& qname, uint16_t qtype);
+DohQueryResult doh_lookup_url(const std::string& endpoint, const std::string& qname, uint16_t qtype);
 
 } // namespace core
 } // namespace whitedns

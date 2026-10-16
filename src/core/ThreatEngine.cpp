@@ -1,4 +1,5 @@
 #include "whitedns/core/ThreatEngine.h"
+#include "whitedns/core/DnsMath.h"
 
 #include "whitedns/DnsTypes.h"
 #include "whitedns/IanaDns.h"
@@ -472,6 +473,7 @@ void print_threat_detect(const ThreatDetectReport& report) {
               << " evaluated=" << report.evaluated
               << " catalog_inconclusive=" << report.inconclusive << "\n";
     std::cout << "evidence_sha256=" << report.evidence_sha256 << "\n";
+    std::cout << "entropy=" << shannon_entropy(report.qname) << "\n";
     std::cout << "Concepts: OBSERVATION ≠ ANOMALY ≠ FINDING ≠ CONFIRMED ATTACK\n";
     std::cout << "------------------------------------------------------------\n";
     for (const auto& f : report.findings) {

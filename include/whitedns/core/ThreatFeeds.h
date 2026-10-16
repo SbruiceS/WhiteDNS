@@ -6,7 +6,8 @@
 namespace whitedns {
 namespace core {
 
-void print_threat_feeds(const std::string& name);
+void print_threat_feeds(const std::string& name, const std::string& local_urlhaus = "");
+int feed_match(const std::string& name, const std::string& local_urlhaus);
 
 } // namespace core
 } // namespace whitedns

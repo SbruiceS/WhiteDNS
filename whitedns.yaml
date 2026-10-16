@@ -1,0 +1,7 @@
+# WhiteDNS config. Flags on the command line override these.
+resolvers: 8.8.8.8,1.1.1.1,9.9.9.9
+types: A,NS,TXT
+fail_on: high
+threads: 16
+timeout: 2000
+# feed: /var/lib/whitedns/urlhaus.txt
