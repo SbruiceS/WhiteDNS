@@ -259,6 +259,11 @@ bool load_subdomain_candidates(const std::string& value, std::vector<std::string
         }
         return !candidates.empty();
     }
+    // A path that did not open is not a prefix. Report missing, do not query it.
+    if (value.find('/') != std::string::npos || value.size() > 4 && value.substr(value.size() - 4) == ".txt") {
+        std::cerr << "wordlist not found: " << value << "\n";
+        return false;
+    }
     candidates = split(value, ',');
     return !candidates.empty();
 }
@@ -1695,6 +1700,10 @@ int main(int argc, char* argv[]) {
             int npaths = 3;
             for (int i = 0; i < npaths; ++i) {
                 if (load_subdomain_candidates(paths[i], opt.subdomain_candidates)) break;
+            }
+            if (opt.subdomain_candidates.empty()) {
+                std::cerr << "no wordlist loaded. run from the repo root or install share/*.txt\n";
+                return 1;
             }
         }
         int workers = opt.threads > 0 ? opt.threads : (opt.brute_subdomains ? 32 : 16);
