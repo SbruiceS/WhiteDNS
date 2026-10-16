@@ -1694,25 +1694,35 @@ int main(int argc, char* argv[]) {
             std::cout << "permute  generated=" << gen.size() << "\n";
         }
         if (opt.subdomain_candidates.empty()) {
-            const char* brute_paths[] = {
-                "share/subdomains-brute.txt",
-                "../share/subdomains-brute.txt",
-                "/usr/share/whitedns/subdomains-brute.txt",
-                "/usr/local/share/whitedns/subdomains-brute.txt"
-            };
-            const char* enum_paths[] = {
-                "share/subdomains.txt",
-                "../share/subdomains.txt",
-                "/usr/share/whitedns/subdomains.txt",
-                "/usr/local/share/whitedns/subdomains.txt"
-            };
-            const char** paths = opt.brute_subdomains ? brute_paths : enum_paths;
-            int npaths = 4;
-            for (int i = 0; i < npaths; ++i) {
-                if (load_subdomain_candidates(paths[i], opt.subdomain_candidates)) break;
+            std::string home = ".";
+            if (const char* h = std::getenv("HOME")) home = h;
+            std::string user_enum = home + "/.whitedns/subdomains.txt";
+            std::string user_brute = home + "/.whitedns/subdomains-brute.txt";
+            std::vector<std::string> paths;
+            if (opt.brute_subdomains) {
+                paths = {
+                    "share/subdomains-brute.txt",
+                    "../share/subdomains-brute.txt",
+                    user_brute,
+                    "/usr/local/share/whitedns/subdomains-brute.txt",
+                    "/usr/share/whitedns/subdomains-brute.txt"
+                };
+            } else {
+                paths = {
+                    "share/subdomains.txt",
+                    "../share/subdomains.txt",
+                    user_enum,
+                    "/usr/local/share/whitedns/subdomains.txt",
+                    "/usr/share/whitedns/subdomains.txt"
+                };
+            }
+            for (const auto& p : paths) {
+                if (load_subdomain_candidates(p, opt.subdomain_candidates)) break;
             }
             if (opt.subdomain_candidates.empty()) {
-                std::cerr << "no wordlist loaded. install share/*.txt to /usr/share/whitedns/ or run from the repo root\n";
+                std::cerr << "no wordlist loaded.\n";
+                std::cerr << "  with root:    sudo mkdir -p /usr/share/whitedns && sudo cp share/*.txt /usr/share/whitedns/\n";
+                std::cerr << "  without root: mkdir -p ~/.whitedns && cp share/*.txt ~/.whitedns/\n";
                 return 1;
             }
         }
