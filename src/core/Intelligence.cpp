@@ -215,8 +215,8 @@ static void fill_algorithms(FusionState& s) {
     double m_unknown = 1.0 - m_agree - m_conflict;
     s.algorithm_lines.push_back("dempster mass agree=" + std::to_string(m_agree) + " conflict=" + std::to_string(m_conflict) +
                                 " unknown=" + std::to_string(m_unknown));
-    s.algorithm_lines.push_back("asn_rdap_tls=not_queried");
-    s.algorithm_lines.push_back("temporal_store=none second sample not kept across runs");
+    s.algorithm_lines.push_back("asn_rdap=queried_by_asn_and_rdap_commands");
+    s.algorithm_lines.push_back("temporal_store=~/.whitedns/history");
 }
 
 void print_graph(const FusionState& s) {
@@ -339,7 +339,7 @@ void print_doctor() {
     std::cout << "  raw evidence is not overwritten by the reduced set\n";
     std::cout << "  confidence means source agreement, not probability of attack\n";
     std::cout << "  poison confirm needs DNSSEC contradiction and disjoint A and AA disagree\n";
-    std::cout << "  ASN, RDAP, TLS are not queried\n";
+    std::cout << "  ASN, RDAP, TLS: run `asn` and `rdap`. Graph edges are from this run's answers.\n";
     std::cout << "  graph algos on the live edge list: bfs, shortest path, degree, components, /24 communities\n";
     std::cout << "  bayes and dempster masses are agreement scores, not attack probabilities\n";
     std::cout << "  commands: lookup records resolve trace odoh dnssec-path intel poison\n";

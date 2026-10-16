@@ -1,4 +1,5 @@
 #include "whitedns/core/PoisonClassifier.h"
+#include "whitedns/core/PoisonProof.h"
 
 #include "whitedns/DnsTypes.h"
 #include "whitedns/IanaDns.h"
@@ -185,6 +186,8 @@ void print_poison_classifier(const PoisonReport& report) {
         std::cout << "[" << f.klass << "] " << f.id << "  " << f.title << "\n";
         std::cout << "        " << f.detail << "\n";
     }
+    auto proof = prove_poison(report.gate_dnssec, report.gate_resolver, report.gate_aa, 0);
+    print_poison_proof(proof);
 }
 
 } // namespace core

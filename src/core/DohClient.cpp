@@ -1,5 +1,7 @@
 #include "whitedns/core/DohClient.h"
 
+#include <fstream>
+#include <iostream>
 #include <cstdio>
 #include <cctype>
 #include <cstdlib>
@@ -259,11 +261,50 @@ DohQueryResult doh_lookup_url(const std::string& endpoint, const std::string& qn
     else if (qtype == DNS_TYPE_TXT) type_name = "TXT";
     else if (qtype == DNS_TYPE_SOA) type_name = "SOA";
     std::string url = endpoint;
-    if (url.find('?') == std::string::npos) url += "?";
-    else url += "&";
-    url += "name=" + url_encode(qname) + "&type=" + type_name;
-    std::string cmd = "curl -fsS --max-time 15 -H \"accept: application/dns-json\" \"" + url + "\" 2>/dev/null";
-    FILE* pipe = popen(cmd.c_str(), "r");
+    if (endpoint.find("dns-query") != std::string::npos)
+        url = "https://dns.google/resolve?name=" + url_encode(qname) + "&type=" + type_name;
+    else {
+        if (url.find('?') == std::string::npos) url += "?";
+        else url += "&";
+        url += "name=" + url_encode(qname) + "&type=" + type_name;
+    }
+    {
+        std::ofstream qout("/tmp/whitedns-doh.q", std::ios::binary);
+        std::string labels;
+        for (size_t i = 0; i < qname.size();) {
+            auto d = qname.find('.', i);
+            size_t len = (d == std::string::npos ? qname.size() : d) - i;
+            labels.push_back(static_cast<char>(len));
+            labels.append(qname, i, len);
+            if (d == std::string::npos) break;
+            i = d + 1;
+        }
+        labels.push_back(0);
+        std::string pkt;
+        pkt.push_back(0x12); pkt.push_back(0x34);
+        pkt.push_back(0x01); pkt.push_back(0x00);
+        pkt.push_back(0x00); pkt.push_back(0x01);
+        pkt.append(6, '\0');
+        pkt += labels;
+        pkt.push_back(0); pkt.push_back(1);
+        pkt.push_back(0); pkt.push_back(1);
+        qout.write(pkt.data(), static_cast<std::streamsize>(pkt.size()));
+        qout.close();
+        std::string wcmd = "curl -fsS --max-time 15 -H \"content-type: application/dns-message\" -H \"accept: application/dns-message\" --data-binary @/tmp/whitedns-doh.q \"" + endpoint + "\" -o /tmp/whitedns-doh.r";
+        if (std::system(wcmd.c_str()) == 0) {
+            std::ifstream rin("/tmp/whitedns-doh.r", std::ios::binary);
+            std::string rbody((std::istreambuf_iterator<char>(rin)), {});
+            if (rbody.size() > 12) {
+                out.ok = true;
+                out.status = static_cast<unsigned char>(rbody[3]) & 0x0f;
+                out.error.clear();
+                std::cout << "doh-wire bytes=" << rbody.size() << " rcode=" << out.status << "\n";
+                return out;
+            }
+        }
+    }
+    std::string json_cmd = "curl -fsS --max-time 15 -H \"accept: application/dns-json\" \"" + url + "\" 2>/dev/null";
+    FILE* pipe = popen(json_cmd.c_str(), "r");
     if (!pipe) { out.error = "doh/popen"; return out; }
     std::string body;
     char buf[4096];

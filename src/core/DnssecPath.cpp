@@ -95,17 +95,34 @@ DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& re
         else report.rrsig_expired++;
         if (tags.count(tag)) report.rrsig_keytag_hit++;
     }
-    std::vector<DnsRecord> a_set, ns_set;
+    std::vector<DnsRecord> a_set, ns_set, mx_set, txt_set, soa_set, aaaa_set;
     collect(a_o, DNS_TYPE_A, a_set);
     auto ns_o = engine.query(qname, DNS_TYPE_NS, res, TransportKind::Udp, true);
+    auto mx_o = engine.query(qname, DNS_TYPE_MX, res, TransportKind::Udp, true);
+    auto txt_o = engine.query(qname, DNS_TYPE_TXT, res, TransportKind::Udp, true);
+    auto soa_o = engine.query(qname, DNS_TYPE_SOA, res, TransportKind::Udp, true);
+    auto aaaa_o = engine.query(qname, DNS_TYPE_AAAA, res, TransportKind::Udp, true);
     collect(ns_o, DNS_TYPE_NS, ns_set);
+    collect(mx_o, DNS_TYPE_MX, mx_set);
+    collect(txt_o, DNS_TYPE_TXT, txt_set);
+    collect(soa_o, DNS_TYPE_SOA, soa_set);
+    collect(aaaa_o, DNS_TYPE_AAAA, aaaa_set);
+    collect(ns_o, DNS_TYPE_RRSIG, sigs);
+    collect(mx_o, DNS_TYPE_RRSIG, sigs);
+    collect(txt_o, DNS_TYPE_RRSIG, sigs);
+    collect(soa_o, DNS_TYPE_RRSIG, sigs);
+    collect(aaaa_o, DNS_TYPE_RRSIG, sigs);
     report.sig_verified = verify_rrsig_over(qname, 48, keys, keys, sigs) +
                           verify_rrsig_over(qname, DNS_TYPE_A, a_set, keys, sigs) +
-                          verify_rrsig_over(qname, DNS_TYPE_NS, ns_set, keys, sigs);
+                          verify_rrsig_over(qname, DNS_TYPE_NS, ns_set, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_MX, mx_set, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_TXT, txt_set, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_SOA, soa_set, keys, sigs) +
+                          verify_rrsig_over(qname, DNS_TYPE_AAAA, aaaa_set, keys, sigs);
 
     if (chain.ds_matches_key && report.rrsig_in_window > 0 && report.rrsig_keytag_hit > 0) {
         report.klass = "CONFIRMED_BY_VALIDATION";
-        report.notes = "DS digest matches a DNSKEY. sig_ok counts RRSIG verifications for DNSKEY, A, and NS using algorithms 8, 13, and 15 when OpenSSL is linked.";
+        report.notes = "DS digest matches a DNSKEY. sig_ok is RRSIG verification over DNSKEY, A, AAAA, NS, MX, TXT, and SOA (algorithms 8, 13, 15).";
     } else if (chain.ds_matches_key) {
         report.klass = "OBSERVATION";
         report.notes = "DS digest matches. RRSIG window or key tag did not confirm.";

@@ -25,6 +25,10 @@
 #include "whitedns/core/DohClient.h"
 #include "whitedns/core/DnsMath.h"
 #include "whitedns/core/ChainTools.h"
+#include "whitedns/core/Enrich.h"
+#include "whitedns/core/StatDetect.h"
+#include "whitedns/core/AxfrStream.h"
+#include "whitedns/core/FilterEngine.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -97,6 +101,13 @@ enum class Command {
     Scale,
     Ct,
     Cname,
+    Dot,
+    Rdap,
+    Asn,
+    Pcap,
+    Stat,
+    Axfr,
+    Filter,
     Unknown
 };
 
@@ -292,6 +303,13 @@ Command parse_command(const std::string& command) {
     if (normalized == "scale" || normalized == "intel-scale") return Command::Scale;
     if (normalized == "ct" || normalized == "certs") return Command::Ct;
     if (normalized == "cname" || normalized == "cname-chain") return Command::Cname;
+    if (normalized == "dot") return Command::Dot;
+    if (normalized == "rdap" || normalized == "whois") return Command::Rdap;
+    if (normalized == "asn") return Command::Asn;
+    if (normalized == "pcap" || normalized == "capture") return Command::Pcap;
+    if (normalized == "stat" || normalized == "math") return Command::Stat;
+    if (normalized == "axfr" || normalized == "zone") return Command::Axfr;
+    if (normalized == "filter" || normalized == "search") return Command::Filter;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -353,27 +371,50 @@ void print_architecture() {
     row("resolve", "compare", "multi-resolver", CYAN);
     row("trace", "delegation", "iterative NS walk", CYAN);
     row("baseline", "cache", "TTL and RTT", CYAN);
+    row("enum", "wordlist", "-e -b -r depth", CYAN);
+    row("ct", "crt.sh", "certificate names", CYAN);
+    row("cname", "chain", "CNAME to A", CYAN);
+    row("rdap", "registry", "domain record", CYAN);
+    row("asn", "cymru", "ASN per A", CYAN);
     panel("privacy", BLUE);
     row("odoh", "RFC 9230", "HPKE plus relay", BLUE);
     row("odoh-leak", "M01-M27", "what each party sees", BLUE);
+    row("odoh-filter", "policy", "allow or block", BLUE);
+    row("odoh-policy", "enterprise", "legal path", BLUE);
+    row("dot", "RFC 7858", "TLS port 853", BLUE);
     panel("validation", GREEN);
-    row("dnssec-path", "path", "DS DNSKEY RRSIG", GREEN);
+    row("dnssec-path", "path", "DS DNSKEY RRSIG A NS MX", GREEN);
     row("intel", "RFC/SANS", "SOA MX SPF CAA", GREEN);
     row("wire-check", "parser", "bounds self-test", GREEN);
     panel("detection", RED);
     row("poison", "3-gate", "DNSSEC and disjoint and AA", RED);
     row("detect", "rules", "taxonomy on observations", RED);
     row("faults", "rollup", "findings only", RED);
-    row("feeds", "urlhaus", "on-demand list match", RED);
+    row("feeds", "urlhaus+", "local and remote lists", RED);
+    row("controls", "vendor", "defensive checks", RED);
     row("scale", "S01-S30", "fusion graph poison", MAGENTA);
     row("deep", "H01-H50", "label TTL EDNS fusion", MAGENTA);
     panel("traffic", YELLOW);
     row("traffic", "T01-T90", "observe pack, alias flow", YELLOW);
+    row("traffic-proto", "protocol", "wire faults", YELLOW);
     row("traffic-route", "graph", "path hub components", YELLOW);
+    row("traffic-flow", "flow", "data flow", YELLOW);
+    row("traffic-fault", "fault", "protocol faults", YELLOW);
+    row("pcap", "capture", "DNS/53 count", YELLOW);
+    row("stat", "SPRT", "z Poisson Bayes", YELLOW);
+    row("axfr", "stream", "HLL sketch, no dump", YELLOW);
+    row("filter", "rank", "agreement score, cap", YELLOW);
     row("assess", "authorized", "dnssec poison faults", GREEN);
     row("summary", "card", "fused A and agreement", CYAN);
     panel("ops", MAGENTA);
     row("audit", "frameworks", "JSON, --fail-on", RED);
+    row("firewall", "posture", "open resolver amp", RED);
+    row("enterprise", "profile", "full scan", RED);
+    row("web", "http", "headers and assets", MAGENTA);
+    row("graph", "edges", "ASN RDAP attached", MAGENTA);
+    row("security", "reason", "poison gates", MAGENTA);
+    row("report", "fused", "security plus graph", MAGENTA);
+    row("dga", "lexical", "entropy gate", MAGENTA);
     row("doctor", "self", "no network", YELLOW);
     std::cout << "\n" << style("  confirmation", BOLD)
               << "  poison only if DNSSEC contradiction, disjoint resolvers, and AA disagree\n";
@@ -489,6 +530,7 @@ bool parse_options(int argc, char* argv[], Options& opt) {
             opt.detect_dns_tunneling = true;
         } else if (arg == "-p") {
             opt.proxy_detection = true;
+            opt.probe_https_port = true;
         } else if (arg == "--rebinding") {
             opt.dns_rebinding_detection = true;
         } else if (arg == "-f") {
@@ -773,20 +815,28 @@ void print_diff(const std::string& path, const Json::Value& current) {
     buf << in.rdbuf();
     std::string prev = buf.str();
     std::cout << "diff against " << path << "\n";
-    int news = 0;
+    int news = 0, changed = 0;
     const auto& cur_checks = current["checks"];
     for (unsigned i = 0; i < cur_checks.size(); ++i) {
         const auto& c = cur_checks[i];
         std::string id = c["name"].asString();
         if (id.empty()) id = c["title"].asString();
         std::string status = c["status"].asString();
-        std::string needle = id;
-        if (prev.find(needle) == std::string::npos) {
+        std::string message = c["message"].asString();
+        if (id.empty()) continue;
+        auto at = prev.find(id);
+        if (at == std::string::npos) {
             std::cout << "  new " << id << " status=" << status << "\n";
             news++;
+            continue;
+        }
+        auto window = prev.substr(at, 400);
+        if (window.find(status) == std::string::npos) {
+            std::cout << "  changed " << id << " now=" << status << " message=" << message << "\n";
+            changed++;
         }
     }
-    std::cout << "diff new=" << news << "\n";
+    std::cout << "diff new=" << news << " changed=" << changed << "\n";
 }
 
 std::vector<std::string> servers_to_use(const Options& opt) {
@@ -1021,9 +1071,19 @@ int main(int argc, char* argv[]) {
     }
 
     bool run_port_scan = !opt.port_scan_targets.empty() || !opt.port_scan_ports.empty();
+    if (opt.probe_https_port && !opt.domain.empty() && opt.port_scan_targets.empty()) {
+        opt.port_scan_targets = {opt.domain};
+        if (opt.port_scan_ports.empty()) opt.port_scan_ports = {53, 80, 443, 853};
+        run_port_scan = true;
+    }
     if (run_port_scan && (opt.port_scan_targets.empty() || opt.port_scan_ports.empty())) {
         std::cerr << "Port scan requires targets (-P) and ports (-R).\n";
         return 1;
+    }
+
+    if (!stdout_is_tty() && opt.format == "human") {
+        opt.output_json = true;
+        opt.format = "json";
     }
 
     if (opt.enterprise_profile) {
@@ -1108,7 +1168,10 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::TrafficFlow || opt.command == Command::TrafficFault ||
                   opt.command == Command::Deep || opt.command == Command::Feeds ||
                   opt.command == Command::Scale || opt.command == Command::Ct ||
-                  opt.command == Command::Cname;
+                  opt.command == Command::Cname || opt.command == Command::Dot ||
+                  opt.command == Command::Rdap || opt.command == Command::Asn ||
+                  opt.command == Command::Pcap || opt.command == Command::Stat ||
+                  opt.command == Command::Axfr || opt.command == Command::Filter;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1192,6 +1255,7 @@ int main(int argc, char* argv[]) {
             }
             if (names.size() == 1 && opt.domains_file.empty()) {
                 core::print_threat_feeds(names[0], opt.urlhaus_file);
+                core::print_feeds2(names[0], opt.urlhaus_file);
                 return 0;
             }
             std::cout << "{\n  \"feed\": \"" << opt.urlhaus_file << "\",\n  \"results\": [\n";
@@ -1220,6 +1284,45 @@ int main(int argc, char* argv[]) {
         if (opt.command == Command::Cname) {
             if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
             core::print_cname_chain(opt.domain, opt.dns_server.empty() ? "8.8.8.8" : opt.dns_server);
+            return 0;
+        }
+        if (opt.command == Command::Dot) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_dot(opt.domain, opt.dns_server.empty() ? "1.1.1.1" : opt.dns_server);
+            return 0;
+        }
+        if (opt.command == Command::Rdap) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_rdap(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Asn) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_asn(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Pcap) {
+            if (opt.domain.empty()) { std::cerr << "pcap file required.\n"; return 1; }
+            core::print_pcap(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Stat) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_stat_detect(core::run_stat_detect(opt.domain));
+            return 0;
+        }
+        if (opt.command == Command::Axfr) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            std::string server = opt.dns_server.empty() ? "8.8.8.8" : opt.dns_server;
+            core::print_axfr(core::stream_axfr(opt.domain, server));
+            return 0;
+        }
+        if (opt.command == Command::Filter) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            auto resolvers = servers_to_use(opt);
+            if (resolvers.size() == 1 && opt.dns_servers_multi.empty())
+                resolvers = {"8.8.8.8", "1.1.1.1", "9.9.9.9"};
+            core::print_filter(core::run_filter(opt.domain, resolvers, opt.query_types, opt.arg2));
             return 0;
         }
         if (opt.command == Command::Dga) {
@@ -1262,7 +1365,11 @@ int main(int argc, char* argv[]) {
         }
         if (opt.command == Command::Graph || opt.command == Command::Security || opt.command == Command::Report) {
             auto fused = core::build_fusion(opt.domain);
-            if (opt.command == Command::Graph) core::print_graph(fused);
+            if (opt.command == Command::Graph) {
+                core::print_graph(fused);
+                core::print_asn(opt.domain);
+                core::print_rdap(opt.domain);
+            }
             else if (opt.command == Command::Security) core::print_security(fused);
             else core::print_report(fused);
             return 0;
@@ -1580,7 +1687,11 @@ int main(int argc, char* argv[]) {
         if (opt.format == "sarif") write_sarif(opt.arg2.empty() ? "whitedns.sarif" : opt.arg2, report);
         else if (opt.format == "html") write_html(opt.arg2.empty() ? "whitedns.html" : opt.arg2, report);
         else std::cout << report.toStyledString();
-        if (!opt.diff_path.empty()) print_diff(opt.diff_path, report);
+        if (!opt.diff_path.empty()) {
+            std::string path = opt.diff_path == "last" ? core::last_history(opt.domain) : opt.diff_path;
+            print_diff(path, report);
+        }
+        if (opt.format == "json" || opt.output_json) core::save_history(opt.domain, report.toStyledString());
         int gate = fail_rank(opt.fail_on);
         if (gate < 99) {
             for (const auto& c : checks) if (severity_rank(c.status) >= gate) return 1;

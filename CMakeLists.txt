@@ -40,6 +40,11 @@ add_executable(whitedns
   src/core/ScaleIntel.cpp
   src/core/DnsMath.cpp
   src/core/ChainTools.cpp
+  src/core/Enrich.cpp
+  src/core/StatDetect.cpp
+  src/core/PoisonProof.cpp
+  src/core/AxfrStream.cpp
+  src/core/FilterEngine.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)

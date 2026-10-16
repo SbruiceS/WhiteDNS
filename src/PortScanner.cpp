@@ -193,7 +193,8 @@ void PortScanner::record_result(ScanResult result) {
 }
 
 Json::Value PortScanner::to_json() const {
-    Json::Value root(Json::arrayValue);
+    Json::Value root(Json::objectValue);
+    Json::Value list(Json::arrayValue);
     for (const auto& result : results_) {
         Json::Value item(Json::objectValue);
         item["target"] = result.target;
@@ -201,8 +202,10 @@ Json::Value PortScanner::to_json() const {
         item["protocol"] = result.protocol;
         item["open"] = result.open;
         item["error"] = result.error;
-        root.append(item);
+        list.append(item);
+        root[std::to_string(result.port)] = item;
     }
+    root["results"] = list;
     return root;
 }
 
