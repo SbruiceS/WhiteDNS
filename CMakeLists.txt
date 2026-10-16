@@ -45,6 +45,10 @@ add_executable(whitedns
   src/core/PoisonProof.cpp
   src/core/AxfrStream.cpp
   src/core/FilterEngine.cpp
+  src/core/CliDraw.cpp
+  src/core/ProTools.cpp
+  src/core/QueryControl.cpp
+  src/core/Monitor.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)

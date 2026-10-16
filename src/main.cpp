@@ -29,6 +29,10 @@
 #include "whitedns/core/StatDetect.h"
 #include "whitedns/core/AxfrStream.h"
 #include "whitedns/core/FilterEngine.h"
+#include "whitedns/core/CliDraw.h"
+#include "whitedns/core/ProTools.h"
+#include "whitedns/core/QueryControl.h"
+#include "whitedns/core/Monitor.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -108,6 +112,12 @@ enum class Command {
     Stat,
     Axfr,
     Filter,
+    Ptr,
+    Mx,
+    Latency,
+    Qctrl,
+    Monitor,
+    Packages,
     Unknown
 };
 
@@ -310,6 +320,12 @@ Command parse_command(const std::string& command) {
     if (normalized == "stat" || normalized == "math") return Command::Stat;
     if (normalized == "axfr" || normalized == "zone") return Command::Axfr;
     if (normalized == "filter" || normalized == "search") return Command::Filter;
+    if (normalized == "ptr") return Command::Ptr;
+    if (normalized == "mx") return Command::Mx;
+    if (normalized == "latency" || normalized == "rtt") return Command::Latency;
+    if (normalized == "qctrl" || normalized == "control") return Command::Qctrl;
+    if (normalized == "monitor" || normalized == "watch") return Command::Monitor;
+    if (normalized == "packages" || normalized == "mods") return Command::Packages;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -348,6 +364,13 @@ void enable_windows_vt() {
 }
 
 void print_architecture() {
+    core::draw_banner("WhiteDNS  ·  security intelligence", "Cosinfotech Solutions  ·  S. Bruice Singh");
+    std::cout << style("  TARGET → SCOPE → PLAN → TRANSPORT → RESOLVE → PARSE", MAGENTA) << "\n";
+    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n";
+    core::draw_rule();
+    std::cout << style("  posture  ", BOLD) << style("ok", GREEN) << "  " << style("warning", YELLOW)
+              << "  " << style("degraded", YELLOW) << "  " << style("exposed", RED) << "\n";
+    std::cout << style("  exit     ", BOLD) << "0 ok   1 usage   2 degraded   3 exposed   4 warning\n";
     auto row = [](const char* cmd, const char* layer, const char* note, const char* color) {
         std::string name(cmd);
         std::string pad(name.size() >= 16 ? 1 : 16 - name.size(), ' ');
@@ -356,15 +379,6 @@ void print_architecture() {
     auto panel = [](const char* title, const char* color) {
         std::cout << "\n" << style(std::string("┌ ") + title, color) << "\n";
     };
-    std::cout << style("╔══════════════════════════════════════════════════════════════╗", CYAN) << "\n";
-    std::cout << style("║  WhiteDNS dashboard                                          ║", CYAN) << "\n";
-    std::cout << style("║  Cosinfotech Solutions  ·  S. Bruice Singh  ·  2.0.0        ║", CYAN) << "\n";
-    std::cout << style("╚══════════════════════════════════════════════════════════════╝", CYAN) << "\n";
-    std::cout << style("  TARGET → SCOPE → PLAN → TRANSPORT → RESOLVE → PARSE", MAGENTA) << "\n";
-    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n";
-    std::cout << style("  posture  ", BOLD) << style("ok", GREEN) << "  " << style("warning", YELLOW)
-              << "  " << style("degraded", YELLOW) << "  " << style("exposed", RED) << "\n";
-    std::cout << style("  exit     ", BOLD) << "0 ok   1 usage   2 degraded   3 exposed   4 warning\n";
     panel("collect", CYAN);
     row("lookup", "wire", "one resolver", CYAN);
     row("records", "wire", "inventory alias", CYAN);
@@ -404,6 +418,12 @@ void print_architecture() {
     row("stat", "SPRT", "z Poisson Bayes", YELLOW);
     row("axfr", "stream", "HLL sketch, no dump", YELLOW);
     row("filter", "rank", "agreement score, cap", YELLOW);
+    row("ptr", "reverse", "A to PTR", CYAN);
+    row("mx", "mail", "TTL bars", CYAN);
+    row("latency", "rtt", "resolver bars", CYAN);
+    row("qctrl", "PI", "DoH rate control", BLUE);
+    row("monitor", "watch", "sample and diff", CYAN);
+    row("packages", "modules", "network package list", CYAN);
     row("assess", "authorized", "dnssec poison faults", GREEN);
     row("summary", "card", "fused A and agreement", CYAN);
     panel("ops", MAGENTA);
@@ -1171,7 +1191,10 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Cname || opt.command == Command::Dot ||
                   opt.command == Command::Rdap || opt.command == Command::Asn ||
                   opt.command == Command::Pcap || opt.command == Command::Stat ||
-                  opt.command == Command::Axfr || opt.command == Command::Filter;
+                  opt.command == Command::Axfr || opt.command == Command::Filter ||
+                  opt.command == Command::Ptr || opt.command == Command::Mx ||
+                  opt.command == Command::Latency || opt.command == Command::Qctrl ||
+                  opt.command == Command::Monitor || opt.command == Command::Packages;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1323,6 +1346,40 @@ int main(int argc, char* argv[]) {
             if (resolvers.size() == 1 && opt.dns_servers_multi.empty())
                 resolvers = {"8.8.8.8", "1.1.1.1", "9.9.9.9"};
             core::print_filter(core::run_filter(opt.domain, resolvers, opt.query_types, opt.arg2));
+            return 0;
+        }
+        if (opt.command == Command::Ptr) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::run_ptr(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Mx) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::run_mx(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Latency) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::run_latency(opt.domain);
+            return 0;
+        }
+        if (opt.command == Command::Qctrl) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            core::print_query_control(core::run_query_control(opt.domain, opt.dns_server));
+            return 0;
+        }
+        if (opt.command == Command::Monitor) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            int n = opt.threads > 0 ? opt.threads : 3;
+            int gap = opt.timeout_ms > 0 ? opt.timeout_ms / 1000 : 2;
+            auto resolvers = servers_to_use(opt);
+            if (resolvers.size() == 1 && opt.dns_servers_multi.empty())
+                resolvers = {"8.8.8.8", "1.1.1.1", "9.9.9.9"};
+            core::run_monitor(opt.domain, n, gap, resolvers);
+            return 0;
+        }
+        if (opt.command == Command::Packages) {
+            core::print_packages();
             return 0;
         }
         if (opt.command == Command::Dga) {

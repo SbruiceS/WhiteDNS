@@ -1,4 +1,5 @@
 #include "whitedns/core/FilterEngine.h"
+#include "whitedns/core/CliDraw.h"
 
 #include "whitedns/DnsTypes.h"
 #include "whitedns/core/ResolverEngine.h"
@@ -83,13 +84,18 @@ FilterReport run_filter(const std::string& qname,
 }
 
 void print_filter(const FilterReport& r) {
-    std::cout << "WhiteDNS filter  " << r.qname << "\n";
-    std::cout << "queries=" << r.queries << " kept=" << r.kept
-              << " dropped=" << r.dropped << " peak_items=" << r.peak_items << "\n";
-    for (const auto& h : r.hits)
-        std::cout << "  " << h.type << " " << h.value
-                  << " resolvers=" << h.resolvers << " score=" << h.score << "\n";
-    std::cout << r.note << "\n";
+    draw_banner("WhiteDNS filter", r.qname);
+    std::cout << "  queries=" << r.queries << "  kept=" << r.kept
+              << "  dropped=" << r.dropped << "  peak=" << r.peak_items << "\n";
+    draw_rule();
+    double mx = 1;
+    for (const auto& h : r.hits) mx = std::max(mx, h.score);
+    for (const auto& h : r.hits) {
+        std::string label = h.type + " " + h.value;
+        draw_bar(label, h.score, mx);
+    }
+    draw_rule();
+    std::cout << "  " << r.note << "\n";
 }
 
 } // namespace core
