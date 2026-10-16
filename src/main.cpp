@@ -1694,15 +1694,25 @@ int main(int argc, char* argv[]) {
             std::cout << "permute  generated=" << gen.size() << "\n";
         }
         if (opt.subdomain_candidates.empty()) {
-            const char* brute_paths[] = {"share/subdomains-brute.txt", "../share/subdomains-brute.txt", "/usr/share/whitedns/subdomains-brute.txt"};
-            const char* enum_paths[] = {"share/subdomains.txt", "../share/subdomains.txt", "/usr/share/whitedns/subdomains.txt"};
+            const char* brute_paths[] = {
+                "share/subdomains-brute.txt",
+                "../share/subdomains-brute.txt",
+                "/usr/share/whitedns/subdomains-brute.txt",
+                "/usr/local/share/whitedns/subdomains-brute.txt"
+            };
+            const char* enum_paths[] = {
+                "share/subdomains.txt",
+                "../share/subdomains.txt",
+                "/usr/share/whitedns/subdomains.txt",
+                "/usr/local/share/whitedns/subdomains.txt"
+            };
             const char** paths = opt.brute_subdomains ? brute_paths : enum_paths;
-            int npaths = 3;
+            int npaths = 4;
             for (int i = 0; i < npaths; ++i) {
                 if (load_subdomain_candidates(paths[i], opt.subdomain_candidates)) break;
             }
             if (opt.subdomain_candidates.empty()) {
-                std::cerr << "no wordlist loaded. run from the repo root or install share/*.txt\n";
+                std::cerr << "no wordlist loaded. install share/*.txt to /usr/share/whitedns/ or run from the repo root\n";
                 return 1;
             }
         }
