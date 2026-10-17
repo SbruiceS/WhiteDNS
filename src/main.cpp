@@ -379,9 +379,6 @@ void enable_windows_vt() {
 
 void print_architecture() {
     core::draw_banner("WhiteDNS  ·  security intelligence", "Cosinfotech Solutions  ·  S. Bruice Singh");
-    std::cout << style("  TARGET → SCOPE → PLAN → TRANSPORT → RESOLVE → PARSE", MAGENTA) << "\n";
-    std::cout << style("         → CORRELATE → ANALYZE → EVIDENCE → FINDING → REPORT", MAGENTA) << "\n";
-    core::draw_rule();
     std::cout << style("  posture  ", BOLD) << style("ok", GREEN) << "  " << style("warning", YELLOW)
               << "  " << style("degraded", YELLOW) << "  " << style("exposed", RED) << "\n";
     std::cout << style("  exit     ", BOLD) << "0 ok   1 usage   2 degraded   3 exposed   4 warning\n";
