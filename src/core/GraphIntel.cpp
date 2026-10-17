@@ -72,11 +72,39 @@ GraphReport analyze_graph(const std::vector<Edge>& edges) {
     r.vertices = static_cast<int>(nodes.size());
     r.edges = static_cast<int>(edges.size());
     r.components = connected_components(edges);
-    // Algebraic connectivity: second-smallest Laplacian eigenvalue for small connected graphs.
-    // For a path of 2 nodes it is 2. For a triangle it is 3. Approximate via degree for larger graphs.
-    if (r.components == 1 && r.vertices == 2 && r.edges >= 1) r.algebraic_connectivity = 2.0;
-    else if (r.components == 1 && r.vertices == 3 && r.edges == 3) r.algebraic_connectivity = 3.0;
-    else if (r.components == 1 && r.vertices > 0) r.algebraic_connectivity = 0.0;  // not computed for larger
+    // Algebraic connectivity via inverse power iteration on the Laplacian for small graphs.
+    if (r.components == 1 && r.vertices >= 2 && r.vertices <= 8) {
+        auto nodes = nodes_of(edges);
+        std::vector<std::string> idx(nodes.begin(), nodes.end());
+        int n = static_cast<int>(idx.size());
+        std::map<std::string, int> id;
+        for (int i = 0; i < n; ++i) id[idx[i]] = i;
+        std::vector<std::vector<double>> L(n, std::vector<double>(n, 0));
+        for (const auto& e : edges) {
+            int i = id[e.from], j = id[e.to];
+            if (i == j) continue;
+            L[i][i] += 1; L[j][j] += 1;
+            L[i][j] -= 1; L[j][i] -= 1;
+        }
+        // Shift and iterate to approximate the smallest non-zero eigenvalue.
+        std::vector<double> v(n, 1.0 / std::sqrt(n));
+        for (int it = 0; it < 30; ++it) {
+            std::vector<double> w(n, 0);
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < n; ++j) w[i] += L[i][j] * v[j];
+            double mean = 0; for (double x : w) mean += x; mean /= n;
+            for (double& x : w) x -= mean;
+            double norm = 0; for (double x : w) norm += x * x; norm = std::sqrt(norm);
+            if (norm < 1e-12) break;
+            for (int i = 0; i < n; ++i) v[i] = w[i] / norm;
+        }
+        double lam = 0;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j) lam += v[i] * L[i][j] * v[j];
+        r.algebraic_connectivity = lam;
+    } else if (r.components != 1) {
+        r.algebraic_connectivity = 0;
+    }
     auto pr = pagerank(edges);
     std::vector<std::pair<double, std::string>> scored;
     for (const auto& kv : pr) scored.push_back({kv.second, kv.first});

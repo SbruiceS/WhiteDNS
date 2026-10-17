@@ -45,6 +45,24 @@ double first_difference(const std::vector<double>& x) {
     return x.back() - x[x.size() - 2];
 }
 
+std::vector<double> dft_magnitude(const std::vector<double>& x) {
+    std::vector<double> mag;
+    int n = static_cast<int>(x.size());
+    if (n < 2) return mag;
+    int half = n / 2;
+    mag.resize(half);
+    for (int k = 0; k < half; ++k) {
+        double re = 0, im = 0;
+        for (int t = 0; t < n; ++t) {
+            double ang = 2.0 * 3.141592653589793 * k * t / n;
+            re += x[t] * std::cos(ang);
+            im -= x[t] * std::sin(ang);
+        }
+        mag[k] = std::sqrt(re * re + im * im);
+    }
+    return mag;
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;

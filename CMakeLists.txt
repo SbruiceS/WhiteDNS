@@ -53,6 +53,7 @@ add_executable(whitedns
   src/core/Topology.cpp
   src/core/StateMachine.cpp
   src/core/Store.cpp
+  src/core/AgCode.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)
@@ -94,7 +95,7 @@ endif()
 add_executable(whitedns_test_wire tests/test_wire.cpp src/core/Wire.cpp src/DnsClient.cpp)
 target_include_directories(whitedns_test_wire PRIVATE include)
 
-add_executable(whitedns_test_graph tests/test_graph_topology.cpp src/core/GraphIntel.cpp src/core/Topology.cpp)
+add_executable(whitedns_test_graph tests/test_graph_topology.cpp src/core/GraphIntel.cpp src/core/Topology.cpp src/core/DnsMath.cpp src/core/AgCode.cpp)
 target_include_directories(whitedns_test_graph PRIVATE include)
 
 add_executable(whitedns_test_odoh tests/test_odoh.cpp src/core/Odoh.cpp src/core/Wire.cpp src/DnsClient.cpp)

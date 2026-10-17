@@ -1,5 +1,7 @@
 #include "whitedns/core/GraphIntel.h"
 #include "whitedns/core/Topology.h"
+#include "whitedns/core/DnsMath.h"
+#include "whitedns/core/AgCode.h"
 
 #include <cassert>
 #include <iostream>
@@ -42,6 +44,19 @@ int main() {
     assert(t0.vertices == 0);
     assert(t0.betti0 == 0);
     assert(t0.euler == 0);
+
+    // DFT of a constant is a spike at bin 0.
+    std::vector<double> flat(8, 1.0);
+    auto mag = dft_magnitude(flat);
+    assert(!mag.empty());
+    assert(mag[0] > mag[1]);
+
+    // AG syndrome: even parity, all-zero word has zero syndrome.
+    std::vector<std::vector<int>> H = {{1,1,0}, {0,1,1}};
+    std::vector<int> word = {0,0,0};
+    auto syn = syndrome_gf2(H, word);
+    assert(syn.size() == 2);
+    assert(syn[0] == 0 && syn[1] == 0);
 
     std::cout << "graph+topology tests passed\n";
     return 0;
