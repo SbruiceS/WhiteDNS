@@ -31,5 +31,18 @@ std::vector<int> decode_nearest(const std::vector<std::vector<int>>& codewords, 
     return best;
 }
 
+std::vector<int> AgEval::evaluate(const std::vector<int>& poly, const std::vector<int>& points) const {
+    std::vector<int> out;
+    for (int x : points) {
+        int acc = 0, xp = 1;
+        for (int c : poly) {
+            acc = (acc + c * xp) % field;
+            xp = (xp * x) % field;
+        }
+        out.push_back(acc);
+    }
+    return out;
+}
+
 } // namespace core
 } // namespace whitedns

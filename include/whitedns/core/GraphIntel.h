@@ -25,6 +25,8 @@ struct GraphReport {
 // Undirected view for components. Directed for PageRank.
 int connected_components(const std::vector<Edge>& edges);
 std::map<std::string, double> pagerank(const std::vector<Edge>& edges, int iters = 20, double d = 0.85);
+std::map<std::string, double> betweenness(const std::vector<Edge>& edges);
+std::vector<int> spectral_cluster(const std::vector<Edge>& edges, int k = 2);
 GraphReport analyze_graph(const std::vector<Edge>& edges);
 void print_graph_report(const GraphReport& r);
 

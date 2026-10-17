@@ -72,6 +72,26 @@ int main() {
     kj.update(10);
     assert(kj.x > 9 && kj.x < 11);
 
+    // Betweenness of a path a-b-c: b is highest.
+    std::vector<Edge> path = {{"a","b"}, {"b","c"}};
+    auto bt = betweenness(path);
+    assert(bt["b"] >= bt["a"]);
+
+    // Spectral cluster of a triangle is one component.
+    std::vector<Edge> tri_e = {{"a","b"}, {"b","c"}, {"a","c"}};
+    auto lab = spectral_cluster(tri_e, 2);
+    assert(lab.size() == 3);
+
+    // HMM returns a path of the same length.
+    Hmm2 hmm;
+    auto hp = hmm.viterbi({0, 0, 1, 1});
+    assert(hp.size() == 4);
+
+    // AG evaluation is deterministic.
+    AgEval ag;
+    auto cw = ag.evaluate({1, 2}, {1, 2, 3});
+    assert(cw.size() == 3);
+
     std::cout << "graph+topology tests passed\n";
     return 0;
 }

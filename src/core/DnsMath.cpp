@@ -110,6 +110,31 @@ void KalmanJoseph::update(double z) {
     n++;
 }
 
+std::vector<int> Hmm2::viterbi(const std::vector<int>& obs) const {
+    std::vector<int> path;
+    if (obs.empty()) return path;
+    double v0 = 0.5, v1 = 0.5;
+    std::vector<int> prev0, prev1;
+    for (int o : obs) {
+        double e0 = (o == 0) ? b0 : (1.0 - b0);
+        double e1 = (o == 0) ? b1 : (1.0 - b1);
+        double n0 = std::max(v0 * a00, v1 * a10) * e0;
+        double n1 = std::max(v0 * a01, v1 * a11) * e1;
+        int p0 = (v0 * a00 >= v1 * a10) ? 0 : 1;
+        int p1 = (v0 * a01 >= v1 * a11) ? 0 : 1;
+        prev0.push_back(p0);
+        prev1.push_back(p1);
+        v0 = n0; v1 = n1;
+    }
+    int state = (v0 >= v1) ? 0 : 1;
+    path.resize(obs.size());
+    for (int t = static_cast<int>(obs.size()) - 1; t >= 0; --t) {
+        path[t] = state;
+        state = (state == 0) ? prev0[t] : prev1[t];
+    }
+    return path;
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;

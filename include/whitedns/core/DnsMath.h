@@ -47,6 +47,13 @@ struct KalmanJoseph {
     int n = 0;
     void update(double z);
 };
+
+// Two-state HMM. States 0=normal, 1=anomaly. Observations are binary.
+struct Hmm2 {
+    double a00 = 0.9, a01 = 0.1, a10 = 0.3, a11 = 0.7;
+    double b0 = 0.9, b1 = 0.2;  // P(obs=0 | state)
+    std::vector<int> viterbi(const std::vector<int>& obs) const;
+};
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms);
 
 } // namespace core
