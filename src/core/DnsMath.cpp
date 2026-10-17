@@ -33,6 +33,18 @@ double shannon_entropy(const std::string& s) {
     return h;
 }
 
+double ewma(const std::vector<double>& x, double alpha) {
+    if (x.empty()) return 0;
+    double y = x[0];
+    for (size_t i = 1; i < x.size(); ++i) y = alpha * x[i] + (1.0 - alpha) * y;
+    return y;
+}
+
+double first_difference(const std::vector<double>& x) {
+    if (x.size() < 2) return 0;
+    return x.back() - x[x.size() - 2];
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;

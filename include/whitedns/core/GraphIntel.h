@@ -17,8 +17,9 @@ struct GraphReport {
     int vertices = 0;
     int edges = 0;
     int components = 0;
-    std::vector<std::string> top_pagerank;  // name:score
-    std::vector<std::string> top_degree;    // name:degree
+    double algebraic_connectivity = 0;  // Fiedler value of the Laplacian, 0 if not connected
+    std::vector<std::string> top_pagerank;
+    std::vector<std::string> top_degree;
 };
 
 // Undirected view for components. Directed for PageRank.

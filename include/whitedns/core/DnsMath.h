@@ -30,6 +30,8 @@ struct MathReport {
 };
 
 double shannon_entropy(const std::string& s);
+double ewma(const std::vector<double>& x, double alpha = 0.3);
+double first_difference(const std::vector<double>& x);
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms);
 
 } // namespace core
