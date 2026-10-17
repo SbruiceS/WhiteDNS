@@ -134,9 +134,25 @@ GitHub Actions: run the `domain-scan` workflow and set the domain and fail level
 
 Poison is confirmed only when DNSSEC contradiction, disjoint resolver answers, and authoritative disagreement all fire.
 
+## Features
+
+| Area | Commands / modules |
+|---|---|
+| Collect | lookup, records, resolve, trace, baseline, enum, ct, cname, rdap, asn |
+| Privacy | odoh, odoh-leak, odoh-filter, odoh-policy, dot |
+| DNSSEC | dnssec-path, dnssec-path walk (parent DS to root DNSKEY) |
+| Detection | poison (three gates), detect, faults, feeds, controls, scale, deep |
+| Traffic | traffic, traffic-proto, traffic-route, traffic-flow, traffic-fault, pcap, stat |
+| Monitoring | monitor, monitor status, monitor pause, monitor resume, --diff |
+| Bulk | bulk --domains file (up to 50 names) |
+| Graph | graph, graphintel (PageRank, degree, betweenness, algebraic connectivity) |
+| Topology | topology (beta0, beta1, Euler, persistence) |
+| Math | Kalman, Joseph form, EWMA, DFT, Welch PSD, KL, CUSUM, HMM |
+| Dashboard | dashboard (optional FTXUI) |
+
 ## Docs
 
-[docs/CLI.md](docs/CLI.md) · [docs/PLATFORM.md](docs/PLATFORM.md) · [docs/ODOH.md](docs/ODOH.md) · [docs/INTELLIGENCE.md](docs/INTELLIGENCE.md)
+[docs/CLI.md](docs/CLI.md) · [docs/ENGINE_STATUS.md](docs/ENGINE_STATUS.md) · [docs/MONITORING.md](docs/MONITORING.md) · [docs/GRAPH_INTELLIGENCE.md](docs/GRAPH_INTELLIGENCE.md) · [docs/ACP.md](docs/ACP.md)
 
 ## License
 
