@@ -52,6 +52,7 @@ add_executable(whitedns
   src/core/GraphIntel.cpp
   src/core/Topology.cpp
   src/core/StateMachine.cpp
+  src/core/Store.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)

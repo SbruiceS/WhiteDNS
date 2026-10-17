@@ -14,7 +14,8 @@ struct TopologyReport {
     int edges = 0;
     int triangles = 0;
     int betti0 = 0;          // connected components
-    int euler = 0;           // V - E + F (triangles as 2-simplices when present)
+    int betti1 = 0;          // independent cycles (cycle rank of the 1-skeleton, reduced by filled triangles)
+    int euler = 0;           // V - E + F
     std::string note;
 };
 

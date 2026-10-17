@@ -18,7 +18,15 @@ int main() {
     assert(t.edges == 3);
     assert(t.triangles == 1);
     assert(t.betti0 == 1);
+    assert(t.betti1 == 0);  // triangle is filled, cycle killed
     assert(t.euler == 3 - 3 + 1);  // 1
+
+    // Cycle of 4 (no diagonals): beta1 = 1.
+    std::vector<SimplexEdge> c4 = {{"a","b"}, {"b","c"}, {"c","d"}, {"d","a"}};
+    auto tc = compute_topology(c4);
+    assert(tc.triangles == 0);
+    assert(tc.betti0 == 1);
+    assert(tc.betti1 == 1);
 
     // Single edge.
     std::vector<SimplexEdge> one = {{"x","y"}};

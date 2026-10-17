@@ -35,6 +35,7 @@
 #include "whitedns/core/Monitor.h"
 #include "whitedns/core/GraphIntel.h"
 #include "whitedns/core/Topology.h"
+#include "whitedns/core/Store.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -1409,6 +1410,12 @@ int main(int argc, char* argv[]) {
         }
         if (opt.command == Command::Monitor) {
             if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            if (opt.arg2 == "pause") { core::scheduler_pause(opt.domain); std::cout << "paused " << opt.domain << "\n"; return 0; }
+            if (opt.arg2 == "resume") { core::scheduler_resume(opt.domain); std::cout << "resumed " << opt.domain << "\n"; return 0; }
+            if (core::scheduler_is_paused(opt.domain) && opt.arg2 != "status" && opt.arg2 != "history") {
+                std::cout << "monitor paused for " << opt.domain << ". resume to continue.\n";
+                return 0;
+            }
             if (opt.arg2 == "status" || opt.arg2 == "history") {
                 std::string path = std::string(std::getenv("HOME") ? std::getenv("HOME") : ".") + "/.whitedns/history/" + opt.domain + ".fields";
                 std::ifstream in(path);
@@ -1456,7 +1463,7 @@ int main(int argc, char* argv[]) {
             }
             std::cout << "target=" << opt.domain << "\n";
             std::cout << "panels: summary resolver-health findings graph topology\n";
-            std::cout << "keys: j/k move  Enter open  q quit  (interactive mode not yet)\n";
+            std::cout << "keys: j/k move  Enter open  q quit  (FTXUI not linked; noninteractive)\n";
             auto g = core::analyze_graph({{opt.domain, "ns"}, {"ns", "a"}});
             core::print_graph_report(g);
             auto t = core::compute_topology({{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}});
