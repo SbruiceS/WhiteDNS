@@ -35,3 +35,19 @@ jobs:
           path: |
             build/audit.json
             build/metrics.prom
+      - name: email on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: WhiteDNS scan failed for ${{ github.event.inputs.domain || 'google.com' }}
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: |
+            Domain scan failed.
+            Domain: ${{ github.event.inputs.domain || 'google.com' }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Artifacts: whitedns-audit (audit.json, metrics.prom)
