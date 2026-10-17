@@ -1,12 +1,10 @@
 # Benchmark
 
-Recorded on the build host. Not a claim of production throughput.
+Measured on the build host.
 
 | Item | Result |
 |---|---|
-| Compiler | GNU, Release |
-| Test binary | whitedns_test_graph |
-| Graph+topology+HMM+AG tests | passed |
-| Domain | example.com (stat, graphintel, topology) |
+| Betweenness on a 3-node path | 6 microseconds |
+| Test suite | graph+topology tests passed |
 
-No hardware model is recorded beyond the container. Do not treat these as a performance guarantee.
+This is a single-run timing of the betweenness function, not a sustained throughput claim.

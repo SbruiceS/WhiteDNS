@@ -106,7 +106,25 @@ std::vector<int> spectral_cluster(const std::vector<Edge>& edges, int k) {
         for (int i = 0; i < n; ++i) v[i] = w[i] / norm;
     }
     labels.resize(n);
-    for (int i = 0; i < n; ++i) labels[i] = v[i] >= 0 ? 0 : 1;
+    // k-means on the Fiedler coordinate. Two clusters by sign, then refine.
+    std::vector<double> c0, c1;
+    for (int i = 0; i < n; ++i) {
+        if (v[i] >= 0) c0.push_back(v[i]); else c1.push_back(v[i]);
+    }
+    auto mean = [](const std::vector<double>& a) {
+        if (a.empty()) return 0.0;
+        double s = 0; for (double x : a) s += x; return s / a.size();
+    };
+    double m0 = mean(c0), m1 = mean(c1);
+    for (int iter = 0; iter < 5; ++iter) {
+        c0.clear(); c1.clear();
+        for (int i = 0; i < n; ++i) {
+            double d0 = std::abs(v[i] - m0), d1 = std::abs(v[i] - m1);
+            if (d0 <= d1) { labels[i] = 0; c0.push_back(v[i]); }
+            else { labels[i] = 1; c1.push_back(v[i]); }
+        }
+        m0 = mean(c0); m1 = mean(c1);
+    }
     return labels;
 }
 

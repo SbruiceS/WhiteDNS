@@ -51,8 +51,10 @@ struct KalmanJoseph {
 // Two-state HMM. States 0=normal, 1=anomaly. Observations are binary.
 struct Hmm2 {
     double a00 = 0.9, a01 = 0.1, a10 = 0.3, a11 = 0.7;
-    double b0 = 0.9, b1 = 0.2;  // P(obs=0 | state)
+    double b0 = 0.9, b1 = 0.2;
     std::vector<int> viterbi(const std::vector<int>& obs) const;
+    // Estimate emission probabilities from labeled observations.
+    void train(const std::vector<int>& obs, const std::vector<int>& states);
 };
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms);
 

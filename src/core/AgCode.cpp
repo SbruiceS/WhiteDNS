@@ -44,5 +44,30 @@ std::vector<int> AgEval::evaluate(const std::vector<int>& poly, const std::vecto
     return out;
 }
 
+int AgEval::riemann_roch_dim(int deg) const {
+    if (deg < 0) return 0;
+    int bound = deg - genus + 1;
+    return bound > 0 ? bound : 0;
+}
+
+std::vector<int> AgEval::decode(const std::vector<int>& received, const std::vector<int>& points, int max_deg) const {
+    if (received.size() != points.size() || received.empty()) return {};
+    int best_d = 1000000;
+    std::vector<int> best;
+    int coeffs = max_deg + 1;
+    int span = 1;
+    for (int i = 0; i < coeffs; ++i) span *= field;
+    for (int mask = 0; mask < span && mask < 2000; ++mask) {
+        std::vector<int> poly(coeffs);
+        int m = mask;
+        for (int i = 0; i < coeffs; ++i) { poly[i] = m % field; m /= field; }
+        auto cw = evaluate(poly, points);
+        int d = 0;
+        for (size_t i = 0; i < cw.size(); ++i) if (cw[i] != received[i]) d++;
+        if (d < best_d) { best_d = d; best = cw; }
+    }
+    return best;
+}
+
 } // namespace core
 } // namespace whitedns

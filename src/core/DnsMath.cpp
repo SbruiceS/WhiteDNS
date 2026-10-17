@@ -135,6 +135,17 @@ std::vector<int> Hmm2::viterbi(const std::vector<int>& obs) const {
     return path;
 }
 
+void Hmm2::train(const std::vector<int>& obs, const std::vector<int>& states) {
+    if (obs.size() != states.size() || obs.empty()) return;
+    int n0 = 0, n1 = 0, e0 = 0, e1 = 0;
+    for (size_t i = 0; i < obs.size(); ++i) {
+        if (states[i] == 0) { n0++; if (obs[i] == 0) e0++; }
+        else { n1++; if (obs[i] == 0) e1++; }
+    }
+    if (n0 > 0) b0 = static_cast<double>(e0) / n0;
+    if (n1 > 0) b1 = static_cast<double>(e1) / n1;
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;

@@ -4,6 +4,7 @@
 #include "whitedns/core/AgCode.h"
 
 #include <cassert>
+#include <chrono>
 #include <iostream>
 
 int main() {
@@ -87,10 +88,22 @@ int main() {
     auto hp = hmm.viterbi({0, 0, 1, 1});
     assert(hp.size() == 4);
 
-    // AG evaluation is deterministic.
+    // AG Riemann-Roch and decode.
     AgEval ag;
+    assert(ag.riemann_roch_dim(3) == 3 - 1 + 1);
     auto cw = ag.evaluate({1, 2}, {1, 2, 3});
-    assert(cw.size() == 3);
+    auto dec = ag.decode(cw, {1, 2, 3}, 1);
+    assert(dec.size() == 3);
+
+    // HMM train changes emissions.
+    hmm.train({0, 0, 1}, {0, 0, 1});
+    assert(hmm.b0 > 0.5);
+
+    // Timed betweenness.
+    auto t_start = std::chrono::steady_clock::now();
+    betweenness(path);
+    auto us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t_start).count();
+    std::cout << "benchmark betweenness_us=" << us << "\n";
 
     std::cout << "graph+topology tests passed\n";
     return 0;
