@@ -36,6 +36,17 @@ double first_difference(const std::vector<double>& x);
 std::vector<double> dft_magnitude(const std::vector<double>& x);
 // Welch PSD: average of windowed DFTs. Window length and overlap are explicit.
 std::vector<double> welch_psd(const std::vector<double>& x, int window = 8, int overlap = 4);
+double kl_divergence(const std::vector<double>& p, const std::vector<double>& q);
+double cusum(const std::vector<double>& x, double target);
+// Joseph-form scalar Kalman. More stable covariance update.
+struct KalmanJoseph {
+    double x = 0;
+    double p = 1;
+    double q = 1;
+    double r = 4;
+    int n = 0;
+    void update(double z);
+};
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms);
 
 } // namespace core

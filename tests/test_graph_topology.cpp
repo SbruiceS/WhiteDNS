@@ -58,6 +58,20 @@ int main() {
     assert(syn.size() == 2);
     assert(syn[0] == 0 && syn[1] == 0);
 
+    // KL of identical distributions is 0.
+    std::vector<double> p = {0.5, 0.5};
+    assert(kl_divergence(p, p) < 1e-9);
+
+    // CUSUM of a constant at the target is 0.
+    std::vector<double> flat2(5, 1.0);
+    assert(cusum(flat2, 1.0) < 1e-9);
+
+    // Joseph Kalman converges toward the measurement.
+    KalmanJoseph kj;
+    kj.update(10);
+    kj.update(10);
+    assert(kj.x > 9 && kj.x < 11);
+
     std::cout << "graph+topology tests passed\n";
     return 0;
 }

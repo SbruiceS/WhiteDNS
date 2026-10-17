@@ -79,6 +79,37 @@ std::vector<double> welch_psd(const std::vector<double>& x, int window, int over
     return acc;
 }
 
+double kl_divergence(const std::vector<double>& p, const std::vector<double>& q) {
+    if (p.size() != q.size() || p.empty()) return 0;
+    double s = 0;
+    for (size_t i = 0; i < p.size(); ++i) {
+        if (p[i] <= 0 || q[i] <= 0) continue;
+        s += p[i] * std::log2(p[i] / q[i]);
+    }
+    return s;
+}
+
+double cusum(const std::vector<double>& x, double target) {
+    double s = 0, peak = 0;
+    for (double v : x) {
+        s = std::max(0.0, s + (v - target));
+        peak = std::max(peak, s);
+    }
+    return peak;
+}
+
+void KalmanJoseph::update(double z) {
+    if (n == 0) { x = z; p = r; n = 1; return; }
+    double p_pred = p + q;
+    double k = p_pred / (p_pred + r);
+    double innov = z - x;
+    x = x + k * innov;
+    // Joseph form: P = (I-KH)P(I-KH)' + KRK'
+    double ikh = 1.0 - k;
+    p = ikh * p_pred * ikh + k * r * k;
+    n++;
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;
