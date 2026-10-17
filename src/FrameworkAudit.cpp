@@ -756,6 +756,52 @@ Json::Value framework_audit_to_json(const FrameworkAuditReport& report) {
         queries.append(item);
     }
     root["queries"] = queries;
+
+    // Typed observation blocks.
+    Json::Value dns(Json::objectValue), dnssec(Json::objectValue), mail(Json::objectValue), resolvers(Json::arrayValue);
+    dns["observed_at"] = root["observed_at"];
+    dnssec["observed_at"] = root["observed_at"];
+    mail["observed_at"] = root["observed_at"];
+    Json::Value dns_answers(Json::arrayValue), dnssec_answers(Json::arrayValue), mail_answers(Json::arrayValue);
+    std::set<std::string> seen_res;
+    for (const auto& q : report.queries) {
+        if (seen_res.insert(q.server).second) {
+            Json::Value r(Json::objectValue);
+            r["resolver"] = q.server;
+            r["observed_at"] = root["observed_at"];
+            resolvers.append(r);
+        }
+        for (const auto& rec : q.answers) {
+            Json::Value a(Json::objectValue);
+            a["type"] = rec.type_name;
+            a["value"] = rec.value;
+            a["ttl"] = static_cast<int>(rec.ttl);
+            a["resolver"] = q.server;
+            a["aa"] = q.authoritative;
+            a["rtt_ms"] = 0;
+            if (rec.type == DNS_TYPE_DS || rec.type == DNS_TYPE_DNSKEY || rec.type == DNS_TYPE_RRSIG)
+                dnssec_answers.append(a);
+            else if (rec.type == DNS_TYPE_MX || rec.type == DNS_TYPE_TXT)
+                mail_answers.append(a);
+            else
+                dns_answers.append(a);
+        }
+    }
+    dns["answers"] = dns_answers;
+    dnssec["answers"] = dnssec_answers;
+    mail["answers"] = mail_answers;
+    root["dns"] = dns;
+    root["dnssec"] = dnssec;
+    root["mail"] = mail;
+    root["resolvers"] = resolvers;
+
+    // Diff block is filled by the caller when a previous fields file exists.
+    Json::Value diff(Json::objectValue);
+    diff["added"] = Json::Value(Json::arrayValue);
+    diff["removed"] = Json::Value(Json::arrayValue);
+    diff["changed"] = Json::Value(Json::arrayValue);
+    root["diff"] = diff;
+
     // Compact evidence hash over domain + finding ids + statuses.
     std::string canon = report.domain;
     for (const auto& f : report.findings) canon += f.finding_id + f.status;

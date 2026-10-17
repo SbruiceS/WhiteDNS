@@ -34,6 +34,10 @@
         }
       }
     },
+    "dns": { "type": "object", "properties": { "observed_at": { "type": "string" }, "answers": { "type": "array" } } },
+    "dnssec": { "type": "object", "properties": { "observed_at": { "type": "string" }, "answers": { "type": "array" } } },
+    "mail": { "type": "object", "properties": { "observed_at": { "type": "string" }, "answers": { "type": "array" } } },
+    "resolvers": { "type": "array" },
     "queries": { "type": "array" },
     "diff": {
       "type": "object",
