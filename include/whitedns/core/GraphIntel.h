@@ -18,6 +18,7 @@ struct GraphReport {
     int edges = 0;
     int components = 0;
     std::vector<std::string> top_pagerank;  // name:score
+    std::vector<std::string> top_degree;    // name:degree
 };
 
 // Undirected view for components. Directed for PageRank.

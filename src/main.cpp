@@ -122,6 +122,7 @@ enum class Command {
     Packages,
     GraphIntel,
     TopologyCmd,
+    Dashboard,
     Unknown
 };
 
@@ -337,6 +338,7 @@ Command parse_command(const std::string& command) {
     if (normalized == "packages" || normalized == "mods") return Command::Packages;
     if (normalized == "graphintel" || normalized == "gintel") return Command::GraphIntel;
     if (normalized == "topology" || normalized == "topo") return Command::TopologyCmd;
+    if (normalized == "dashboard" || normalized == "dash") return Command::Dashboard;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -1230,7 +1232,8 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Ptr || opt.command == Command::Mx ||
                   opt.command == Command::Latency || opt.command == Command::Qctrl ||
                   opt.command == Command::Monitor || opt.command == Command::Packages ||
-                  opt.command == Command::GraphIntel || opt.command == Command::TopologyCmd;
+                  opt.command == Command::GraphIntel || opt.command == Command::TopologyCmd ||
+                  opt.command == Command::Dashboard;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1442,6 +1445,22 @@ int main(int argc, char* argv[]) {
             std::vector<core::SimplexEdge> edges = {{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}};
             auto report = core::compute_topology(edges);
             core::print_topology(report);
+            return 0;
+        }
+        if (opt.command == Command::Dashboard) {
+            std::cout << "WhiteDNS | DNS Security Intelligence\n";
+            std::cout << "mode=noninteractive  profile=default\n";
+            if (opt.domain.empty()) {
+                std::cout << "empty state: no target. pass a name.\n";
+                return 0;
+            }
+            std::cout << "target=" << opt.domain << "\n";
+            std::cout << "panels: summary resolver-health findings graph topology\n";
+            std::cout << "keys: j/k move  Enter open  q quit  (interactive mode not yet)\n";
+            auto g = core::analyze_graph({{opt.domain, "ns"}, {"ns", "a"}});
+            core::print_graph_report(g);
+            auto t = core::compute_topology({{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}});
+            core::print_topology(t);
             return 0;
         }
         if (opt.command == Command::Dga) {

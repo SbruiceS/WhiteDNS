@@ -81,6 +81,16 @@ GraphReport analyze_graph(const std::vector<Edge>& edges) {
         std::snprintf(buf, sizeof(buf), "%s:%.4f", scored[i].second.c_str(), scored[i].first);
         r.top_pagerank.push_back(buf);
     }
+    std::map<std::string, int> deg;
+    for (const auto& e : edges) { deg[e.from]++; deg[e.to]++; }
+    std::vector<std::pair<int, std::string>> dscore;
+    for (const auto& kv : deg) dscore.push_back({kv.second, kv.first});
+    std::sort(dscore.begin(), dscore.end(), [](auto& a, auto& b) { return a.first > b.first; });
+    for (size_t i = 0; i < dscore.size() && i < 5; ++i) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%s:%d", dscore[i].second.c_str(), dscore[i].first);
+        r.top_degree.push_back(buf);
+    }
     return r;
 }
 
@@ -90,6 +100,8 @@ void print_graph_report(const GraphReport& r) {
               << " components=" << r.components << "\n";
     std::cout << "pagerank top\n";
     for (const auto& s : r.top_pagerank) std::cout << "  " << s << "\n";
+    std::cout << "degree top\n";
+    for (const auto& s : r.top_degree) std::cout << "  " << s << "\n";
 }
 
 } // namespace core
