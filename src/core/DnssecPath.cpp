@@ -139,6 +139,29 @@ DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& re
     return report;
 }
 
+std::vector<std::string> walk_dnssec_chain(const std::string& qname, const std::string& resolver) {
+    std::vector<std::string> hops;
+    ResolverEngine engine;
+    const std::string res = resolver.empty() ? "8.8.8.8" : resolver;
+    std::string zone = qname;
+    while (!zone.empty()) {
+        auto ds = engine.query(zone, DNS_TYPE_DS, res, TransportKind::Udp, true);
+        int n = 0;
+        for (const auto& r : ds.message.answers) if (r.type == DNS_TYPE_DS) n++;
+        hops.push_back(zone + " DS=" + std::to_string(n));
+        auto dot = zone.find('.');
+        if (dot == std::string::npos) break;
+        zone = zone.substr(dot + 1);
+        if (zone.empty() || zone == ".") break;
+    }
+    // Root.
+    auto root = engine.query(".", DNS_TYPE_DNSKEY, res, TransportKind::Udp, true);
+    int rk = 0;
+    for (const auto& r : root.message.answers) if (r.type == DNS_TYPE_DNSKEY) rk++;
+    hops.push_back(". DNSKEY=" + std::to_string(rk));
+    return hops;
+}
+
 void print_dnssec_path(const DnssecPathReport& report) {
     std::cout << "WhiteDNS DNSSEC path (RFC 4033–4035 / 5155)\n";
     std::cout << "QNAME: " << report.qname << "\n";

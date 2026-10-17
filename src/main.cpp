@@ -124,6 +124,7 @@ enum class Command {
     GraphIntel,
     TopologyCmd,
     Dashboard,
+    Bulk,
     Unknown
 };
 
@@ -340,6 +341,7 @@ Command parse_command(const std::string& command) {
     if (normalized == "graphintel" || normalized == "gintel") return Command::GraphIntel;
     if (normalized == "topology" || normalized == "topo") return Command::TopologyCmd;
     if (normalized == "dashboard" || normalized == "dash") return Command::Dashboard;
+    if (normalized == "bulk") return Command::Bulk;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -1231,7 +1233,7 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Latency || opt.command == Command::Qctrl ||
                   opt.command == Command::Monitor || opt.command == Command::Packages ||
                   opt.command == Command::GraphIntel || opt.command == Command::TopologyCmd ||
-                  opt.command == Command::Dashboard;
+                  opt.command == Command::Dashboard || opt.command == Command::Bulk;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1473,6 +1475,21 @@ int main(int argc, char* argv[]) {
             core::print_topology(t);
             return 0;
         }
+        if (opt.command == Command::Bulk) {
+            if (opt.domains_file.empty()) { std::cerr << "--domains file required.\n"; return 1; }
+            std::ifstream in(opt.domains_file);
+            std::string line;
+            int n = 0;
+            while (std::getline(in, line) && n < 50) {
+                if (line.empty() || line[0] == '#') continue;
+                auto path = core::run_dnssec_path(line, "8.8.8.8");
+                std::cout << line << "  DS=" << (path.ds_present ? "yes" : "no")
+                          << "  match=" << (path.ds_matches_key ? "yes" : "no") << "\n";
+                n++;
+            }
+            std::cout << "bulk " << n << " names\n";
+            return 0;
+        }
         if (opt.command == Command::Dga) {
             core::print_dga(opt.domain.empty() ? "unset" : opt.domain);
             return 0;
@@ -1548,6 +1565,11 @@ int main(int argc, char* argv[]) {
             auto resolvers = servers_to_use(opt);
             auto report = core::run_dnssec_path(opt.domain, resolvers.empty() ? "8.8.8.8" : resolvers.front());
             core::print_dnssec_path(report);
+            if (opt.arg2 == "walk" || opt.arg2 == "chain") {
+                std::cout << "chain walk\n";
+                for (const auto& h : core::walk_dnssec_chain(opt.domain, resolvers.empty() ? "8.8.8.8" : resolvers.front()))
+                    std::cout << "  " << h << "\n";
+            }
             return 0;
         }
         if (opt.command == Command::Intel) {

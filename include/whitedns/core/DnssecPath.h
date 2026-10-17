@@ -30,6 +30,8 @@ struct DnssecPathReport {
 };
 
 DnssecPathReport run_dnssec_path(const std::string& qname, const std::string& resolver);
+// Walk parent zones up to the root and report DS presence at each hop.
+std::vector<std::string> walk_dnssec_chain(const std::string& qname, const std::string& resolver);
 void print_dnssec_path(const DnssecPathReport& report);
 
 } // namespace core
