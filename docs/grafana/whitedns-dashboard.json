@@ -1,0 +1,32 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "title": "Fault score",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [ { "expr": "whitedns_fault_score", "refId": "A" } ]
+    },
+    {
+      "title": "Posture",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [ { "expr": "whitedns_posture", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "mappings": [
+        { "type": "value", "options": { "0": { "text": "ok" }, "1": { "text": "warning" }, "2": { "text": "degraded" }, "3": { "text": "exposed" } } }
+      ] } }
+    },
+    {
+      "title": "Findings",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [ { "expr": "whitedns_findings", "legendFormat": "{{status}}", "refId": "A" } ]
+    }
+  ],
+  "schemaVersion": 39,
+  "title": "WhiteDNS",
+  "uid": "whitedns",
+  "version": 1
+}

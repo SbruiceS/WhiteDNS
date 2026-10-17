@@ -1648,7 +1648,26 @@ int main(int argc, char* argv[]) {
             }
             out << framework_workpaper_to_json(audit).toStyledString();
         }
-        if (opt.output_json || opt.format == "json") {
+        if (opt.format == "prometheus") {
+            int pass = 0, warn = 0, fail = 0;
+            for (const auto& f : audit.findings) {
+                if (f.status == "pass" || f.status == "info") pass++;
+                else if (f.status == "warning") warn++;
+                else if (f.status == "fail") fail++;
+            }
+            int posture_n = audit.posture == "ok" ? 0 : audit.posture == "warning" ? 1 : audit.posture == "degraded" ? 2 : 3;
+            std::cout << "# HELP whitedns_fault_score Fault score 0-100\n";
+            std::cout << "# TYPE whitedns_fault_score gauge\n";
+            std::cout << "whitedns_fault_score{domain=\"" << opt.domain << "\"} " << audit.fault_score << "\n";
+            std::cout << "# HELP whitedns_posture 0 ok 1 warning 2 degraded 3 exposed\n";
+            std::cout << "# TYPE whitedns_posture gauge\n";
+            std::cout << "whitedns_posture{domain=\"" << opt.domain << "\"} " << posture_n << "\n";
+            std::cout << "# HELP whitedns_findings Finding counts by status\n";
+            std::cout << "# TYPE whitedns_findings gauge\n";
+            std::cout << "whitedns_findings{domain=\"" << opt.domain << "\",status=\"pass\"} " << pass << "\n";
+            std::cout << "whitedns_findings{domain=\"" << opt.domain << "\",status=\"warning\"} " << warn << "\n";
+            std::cout << "whitedns_findings{domain=\"" << opt.domain << "\",status=\"fail\"} " << fail << "\n";
+        } else if (opt.output_json || opt.format == "json") {
             auto j = framework_audit_to_json(audit);
             std::cout << j.toStyledString();
             core::save_history(opt.domain, j.toStyledString());

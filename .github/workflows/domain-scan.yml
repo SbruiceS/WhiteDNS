@@ -22,8 +22,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
       - run: chmod +x ci/scan.sh
       - run: WHITEDNS_DOMAIN="${{ github.event.inputs.domain || 'google.com' }}" WHITEDNS_FAIL_ON="${{ github.event.inputs.fail_on || 'degraded' }}" ci/scan.sh
+      - run: ./build/whitedns audit --format prometheus --color never "${{ github.event.inputs.domain || 'google.com' }}" > build/metrics.prom || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: whitedns-audit
-          path: build/audit.json
+          path: |
+            build/audit.json
+            build/metrics.prom
