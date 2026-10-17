@@ -11,6 +11,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <ctime>
 #include <sstream>
 
 namespace whitedns {
@@ -714,8 +715,10 @@ FrameworkAuditReport run_framework_audit(const std::string& domain,
 Json::Value framework_audit_to_json(const FrameworkAuditReport& report) {
     Json::Value root(Json::objectValue);
     root["tool"] = "WhiteDNS";
-    root["schema"] = report.schema;
+    root["schema"] = "whitedns.observation.v3";
+    root["$schema"] = "docs/schema/whitedns.observation.v3.json";
     root["domain"] = report.domain;
+    root["observed_at"] = std::to_string(std::time(nullptr));
     root["fault_score"] = report.fault_score;
     root["posture"] = report.posture;
     root["frameworks"]["sans"] = "SANS Institute DNS attack classes and ISC operational checklists";
@@ -753,6 +756,14 @@ Json::Value framework_audit_to_json(const FrameworkAuditReport& report) {
         queries.append(item);
     }
     root["queries"] = queries;
+    // Compact evidence hash over domain + finding ids + statuses.
+    std::string canon = report.domain;
+    for (const auto& f : report.findings) canon += f.finding_id + f.status;
+    unsigned long h = 1469598103934665603ull;
+    for (unsigned char c : canon) { h ^= c; h *= 1099511628211ull; }
+    std::ostringstream hex;
+    hex << std::hex << h;
+    root["evidence_sha256"] = hex.str();
     return root;
 }
 

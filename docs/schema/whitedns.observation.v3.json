@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SbruiceS/WhiteDNS/docs/schema/whitedns.observation.v3.json",
+  "title": "WhiteDNS Observation v3",
+  "type": "object",
+  "required": ["schema", "tool", "domain", "observed_at", "posture", "findings"],
+  "properties": {
+    "schema": { "const": "whitedns.observation.v3" },
+    "tool": { "const": "WhiteDNS" },
+    "domain": { "type": "string" },
+    "observed_at": { "type": "string", "description": "UTC timestamp of the observation" },
+    "posture": { "enum": ["ok", "warning", "degraded", "exposed"] },
+    "fault_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "evidence_sha256": { "type": "string" },
+    "frameworks": { "type": "object" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "severity"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "enum": ["pass", "warning", "fail", "info", "error"] },
+          "severity": { "type": "string" },
+          "message": { "type": "string" },
+          "sans_class": { "type": "string" },
+          "mitre": { "type": "object" },
+          "rfc": { "type": "string" },
+          "iana": { "type": "string" },
+          "isaca": { "type": "string" },
+          "change_required": { "type": "string" },
+          "evidence": { "type": "object" }
+        }
+      }
+    },
+    "queries": { "type": "array" },
+    "diff": {
+      "type": "object",
+      "properties": {
+        "added": { "type": "array", "items": { "type": "string" } },
+        "removed": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
