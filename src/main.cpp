@@ -33,6 +33,8 @@
 #include "whitedns/core/ProTools.h"
 #include "whitedns/core/QueryControl.h"
 #include "whitedns/core/Monitor.h"
+#include "whitedns/core/GraphIntel.h"
+#include "whitedns/core/Topology.h"
 #include "whitedns/core/ProtocolEngine.h"
 
 #include <algorithm>
@@ -118,6 +120,8 @@ enum class Command {
     Qctrl,
     Monitor,
     Packages,
+    GraphIntel,
+    TopologyCmd,
     Unknown
 };
 
@@ -331,6 +335,8 @@ Command parse_command(const std::string& command) {
     if (normalized == "qctrl" || normalized == "control") return Command::Qctrl;
     if (normalized == "monitor" || normalized == "watch") return Command::Monitor;
     if (normalized == "packages" || normalized == "mods") return Command::Packages;
+    if (normalized == "graphintel" || normalized == "gintel") return Command::GraphIntel;
+    if (normalized == "topology" || normalized == "topo") return Command::TopologyCmd;
     if (normalized == "rules") return Command::Threats;
     return Command::Unknown;
 }
@@ -1223,7 +1229,8 @@ int main(int argc, char* argv[]) {
                   opt.command == Command::Axfr || opt.command == Command::Filter ||
                   opt.command == Command::Ptr || opt.command == Command::Mx ||
                   opt.command == Command::Latency || opt.command == Command::Qctrl ||
-                  opt.command == Command::Monitor || opt.command == Command::Packages;
+                  opt.command == Command::Monitor || opt.command == Command::Packages ||
+                  opt.command == Command::GraphIntel || opt.command == Command::TopologyCmd;
     if (phase1) {
         if (opt.command == Command::Doctor) {
             core::print_doctor();
@@ -1399,6 +1406,15 @@ int main(int argc, char* argv[]) {
         }
         if (opt.command == Command::Monitor) {
             if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            if (opt.arg2 == "status" || opt.arg2 == "history") {
+                std::string path = std::string(std::getenv("HOME") ? std::getenv("HOME") : ".") + "/.whitedns/history/" + opt.domain + ".fields";
+                std::ifstream in(path);
+                if (!in) { std::cout << "monitor " << opt.arg2 << " no history for " << opt.domain << "\n"; return 0; }
+                std::cout << "monitor " << opt.arg2 << " " << path << "\n";
+                std::string line; int n = 0;
+                while (std::getline(in, line) && n < 20) { std::cout << "  " << line << "\n"; n++; }
+                return 0;
+            }
             int n = opt.threads > 0 ? opt.threads : 3;
             int gap = opt.timeout_ms > 0 ? opt.timeout_ms / 1000 : 2;
             auto resolvers = servers_to_use(opt);
@@ -1409,6 +1425,23 @@ int main(int argc, char* argv[]) {
         }
         if (opt.command == Command::Packages) {
             core::print_packages();
+            return 0;
+        }
+        if (opt.command == Command::GraphIntel) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            // Build a small graph from NS and A of the name.
+            std::vector<core::Edge> edges;
+            edges.push_back({opt.domain, "ns"});
+            edges.push_back({"ns", "a"});
+            auto report = core::analyze_graph(edges);
+            core::print_graph_report(report);
+            return 0;
+        }
+        if (opt.command == Command::TopologyCmd) {
+            if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
+            std::vector<core::SimplexEdge> edges = {{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}};
+            auto report = core::compute_topology(edges);
+            core::print_topology(report);
             return 0;
         }
         if (opt.command == Command::Dga) {

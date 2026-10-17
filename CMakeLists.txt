@@ -49,6 +49,8 @@ add_executable(whitedns
   src/core/ProTools.cpp
   src/core/QueryControl.cpp
   src/core/Monitor.cpp
+  src/core/GraphIntel.cpp
+  src/core/Topology.cpp
 )
 
 target_include_directories(whitedns PRIVATE include)
@@ -90,6 +92,9 @@ endif()
 add_executable(whitedns_test_wire tests/test_wire.cpp src/core/Wire.cpp src/DnsClient.cpp)
 target_include_directories(whitedns_test_wire PRIVATE include)
 
+add_executable(whitedns_test_graph tests/test_graph_topology.cpp src/core/GraphIntel.cpp src/core/Topology.cpp)
+target_include_directories(whitedns_test_graph PRIVATE include)
+
 add_executable(whitedns_test_odoh tests/test_odoh.cpp src/core/Odoh.cpp src/core/Wire.cpp src/DnsClient.cpp)
 target_include_directories(whitedns_test_odoh PRIVATE include)
 if(OpenSSL_FOUND)
@@ -107,6 +112,7 @@ include(CTest)
 if(BUILD_TESTING)
   add_test(NAME whitedns_help COMMAND whitedns -h)
   add_test(NAME whitedns_wire COMMAND whitedns_test_wire)
+  add_test(NAME whitedns_graph COMMAND whitedns_test_graph)
   add_test(NAME whitedns_odoh COMMAND whitedns_test_odoh)
 
   if(WHITEDNS_ENABLE_NETWORK_TESTS)
