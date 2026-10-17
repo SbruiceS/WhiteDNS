@@ -252,8 +252,25 @@ void save_history(const std::string& name, const std::string& json) {
     std::cerr << "history " << path << "\n";
 }
 
+void save_fields(const std::string& name, const std::string& fields) {
+    std::string dir = home_dir() + "/.whitedns/history";
+    std::system(("mkdir -p \"" + dir + "\"").c_str());
+    std::string path = dir + "/" + name + ".fields";
+    std::ifstream prev(path);
+    if (prev) {
+        std::ofstream bak(dir + "/" + name + ".fields.prev");
+        bak << prev.rdbuf();
+    }
+    std::ofstream out(path);
+    out << fields;
+}
+
 std::string last_history(const std::string& name) {
     return home_dir() + "/.whitedns/history/" + name + ".prev.json";
+}
+
+std::string last_fields(const std::string& name) {
+    return home_dir() + "/.whitedns/history/" + name + ".fields.prev";
 }
 
 } // namespace core

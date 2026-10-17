@@ -834,34 +834,58 @@ void print_diff(const std::string& path, const Json::Value& current) {
     std::ifstream in(path);
     if (!in) {
         std::cout << "diff previous=missing\n";
+    } else {
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string prev = buf.str();
+        std::cout << "diff against " << path << "\n";
+        int news = 0, changed = 0;
+        const auto& cur_checks = current["checks"];
+        for (unsigned i = 0; i < cur_checks.size(); ++i) {
+            const auto& c = cur_checks[i];
+            std::string id = c["name"].asString();
+            if (id.empty()) id = c["title"].asString();
+            std::string status = c["status"].asString();
+            std::string message = c["message"].asString();
+            if (id.empty()) continue;
+            auto at = prev.find(id);
+            if (at == std::string::npos) {
+                std::cout << "  new " << id << " status=" << status << "\n";
+                news++;
+                continue;
+            }
+            auto window = prev.substr(at, 400);
+            if (window.find(status) == std::string::npos) {
+                std::cout << "  changed " << id << " now=" << status << " message=" << message << "\n";
+                changed++;
+            }
+        }
+        std::cout << "diff new=" << news << " changed=" << changed << "\n";
+    }
+    // Field-level diff if a previous fields file exists.
+    std::string fpath = core::last_fields(current["domain"].asString());
+    std::ifstream fin(fpath);
+    if (!fin) {
+        std::cout << "fields previous=missing\n";
         return;
     }
-    std::stringstream buf;
-    buf << in.rdbuf();
-    std::string prev = buf.str();
-    std::cout << "diff against " << path << "\n";
-    int news = 0, changed = 0;
-    const auto& cur_checks = current["checks"];
-    for (unsigned i = 0; i < cur_checks.size(); ++i) {
-        const auto& c = cur_checks[i];
-        std::string id = c["name"].asString();
-        if (id.empty()) id = c["title"].asString();
-        std::string status = c["status"].asString();
-        std::string message = c["message"].asString();
-        if (id.empty()) continue;
-        auto at = prev.find(id);
-        if (at == std::string::npos) {
-            std::cout << "  new " << id << " status=" << status << "\n";
-            news++;
-            continue;
-        }
-        auto window = prev.substr(at, 400);
-        if (window.find(status) == std::string::npos) {
-            std::cout << "  changed " << id << " now=" << status << " message=" << message << "\n";
-            changed++;
-        }
+    std::set<std::string> prev_f, cur_f;
+    std::string line;
+    while (std::getline(fin, line)) if (!line.empty()) prev_f.insert(line);
+    // Build current fields from queries if present.
+    const auto& qs = current["queries"];
+    for (unsigned i = 0; i < qs.size(); ++i) {
+        std::string t = qs[i]["type"].asString();
+        const auto& ans = qs[i]["answers"];
+        for (unsigned j = 0; j < ans.size(); ++j)
+            cur_f.insert(t + " " + ans[j].asString());
     }
-    std::cout << "diff new=" << news << " changed=" << changed << "\n";
+    std::cout << "fields against " << fpath << "\n";
+    int added = 0, removed = 0;
+    for (const auto& s : cur_f) if (!prev_f.count(s)) { std::cout << "  + " << s << "\n"; added++; }
+    for (const auto& s : prev_f) if (!cur_f.count(s)) { std::cout << "  - " << s << "\n"; removed++; }
+    if (added == 0 && removed == 0) std::cout << "  fields unchanged\n";
+    std::cout << "fields +=" << added << " -=" << removed << "\n";
 }
 
 std::vector<std::string> servers_to_use(const Options& opt) {
@@ -1625,7 +1649,18 @@ int main(int argc, char* argv[]) {
             out << framework_workpaper_to_json(audit).toStyledString();
         }
         if (opt.output_json || opt.format == "json") {
-            std::cout << framework_audit_to_json(audit).toStyledString();
+            auto j = framework_audit_to_json(audit);
+            std::cout << j.toStyledString();
+            core::save_history(opt.domain, j.toStyledString());
+            std::ostringstream fields;
+            for (const auto& f : audit.findings) {
+                fields << f.finding_id << " " << f.status << "\n";
+            }
+            core::save_fields(opt.domain, fields.str());
+            if (!opt.diff_path.empty()) {
+                std::string path = opt.diff_path == "last" ? core::last_history(opt.domain) : opt.diff_path;
+                print_diff(path, j);
+            }
         } else {
             print_framework_audit(audit);
         }
@@ -1777,7 +1812,18 @@ int main(int argc, char* argv[]) {
             std::string path = opt.diff_path == "last" ? core::last_history(opt.domain) : opt.diff_path;
             print_diff(path, report);
         }
-        if (opt.format == "json" || opt.output_json) core::save_history(opt.domain, report.toStyledString());
+        if (opt.format == "json" || opt.output_json) {
+            core::save_history(opt.domain, report.toStyledString());
+            std::ostringstream fields;
+            const auto& qs = report["queries"];
+            for (unsigned i = 0; i < qs.size(); ++i) {
+                std::string t = qs[i]["type"].asString();
+                const auto& ans = qs[i]["answers"];
+                for (unsigned j = 0; j < ans.size(); ++j)
+                    fields << t << " " << ans[j].asString() << "\n";
+            }
+            core::save_fields(opt.domain, fields.str());
+        }
         int gate = fail_rank(opt.fail_on);
         if (gate < 99) {
             for (const auto& c : checks) if (severity_rank(c.status) >= gate) return 1;

@@ -12,7 +12,9 @@ void print_asn(const std::string& name);
 void print_pcap(const std::string& path);
 void print_feeds2(const std::string& name, const std::string& local_file);
 void save_history(const std::string& name, const std::string& json);
+void save_fields(const std::string& name, const std::string& fields);
 std::string last_history(const std::string& name);
+std::string last_fields(const std::string& name);
 
 } // namespace core
 } // namespace whitedns
