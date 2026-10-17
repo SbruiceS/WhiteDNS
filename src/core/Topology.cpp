@@ -1,5 +1,6 @@
 #include "whitedns/core/Topology.h"
 
+#include <algorithm>
 #include <iostream>
 #include <set>
 #include <map>
@@ -66,6 +67,35 @@ TopologyReport compute_topology(const std::vector<SimplexEdge>& edges) {
     return r;
 }
 
+std::vector<PersistenceInterval> persistence_components(const std::vector<SimplexEdge>& edges, const std::vector<double>& weights) {
+    std::vector<PersistenceInterval> out;
+    if (edges.empty() || weights.size() != edges.size()) return out;
+    std::set<std::string> verts;
+    for (const auto& e : edges) { verts.insert(e.a); verts.insert(e.b); }
+    std::map<std::string, std::string> parent;
+    std::map<std::string, double> birth;
+    for (const auto& v : verts) { parent[v] = v; birth[v] = 0; }
+    auto find = [&](auto self, const std::string& x) -> std::string {
+        if (parent[x] == x) return x;
+        return parent[x] = self(self, parent[x]);
+    };
+    std::vector<size_t> order(edges.size());
+    for (size_t i = 0; i < order.size(); ++i) order[i] = i;
+    std::sort(order.begin(), order.end(), [&](size_t a, size_t b) { return weights[a] < weights[b]; });
+    for (size_t idx : order) {
+        auto ra = find(find, edges[idx].a);
+        auto rb = find(find, edges[idx].b);
+        if (ra == rb) continue;
+        if (birth[ra] < birth[rb]) std::swap(ra, rb);
+        PersistenceInterval iv;
+        iv.birth = birth[rb];
+        iv.death = weights[idx];
+        out.push_back(iv);
+        parent[rb] = ra;
+    }
+    return out;
+}
+
 void print_topology(const TopologyReport& r) {
     std::cout << "topology  vertices=" << r.vertices
               << " edges=" << r.edges
@@ -74,6 +104,11 @@ void print_topology(const TopologyReport& r) {
               << " beta1=" << r.betti1
               << " euler=" << r.euler << "\n";
     std::cout << r.note << "\n";
+    if (!r.persistence0.empty()) {
+        std::cout << "persistence0\n";
+        for (const auto& iv : r.persistence0)
+            std::cout << "  [" << iv.birth << ", " << iv.death << ")\n";
+    }
 }
 
 } // namespace core

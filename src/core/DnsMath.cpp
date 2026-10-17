@@ -63,6 +63,22 @@ std::vector<double> dft_magnitude(const std::vector<double>& x) {
     return mag;
 }
 
+std::vector<double> welch_psd(const std::vector<double>& x, int window, int overlap) {
+    std::vector<double> acc;
+    if (window < 4 || overlap >= window || static_cast<int>(x.size()) < window) return acc;
+    int step = window - overlap;
+    int count = 0;
+    for (int start = 0; start + window <= static_cast<int>(x.size()); start += step) {
+        std::vector<double> seg(x.begin() + start, x.begin() + start + window);
+        auto mag = dft_magnitude(seg);
+        if (acc.empty()) acc.assign(mag.size(), 0);
+        for (size_t i = 0; i < mag.size() && i < acc.size(); ++i) acc[i] += mag[i] * mag[i];
+        count++;
+    }
+    if (count > 0) for (double& v : acc) v /= count;
+    return acc;
+}
+
 MathReport score_name(const std::string& qname, const std::vector<double>& rtt_ms) {
     MathReport rep;
     rep.qname = qname;

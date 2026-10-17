@@ -1451,22 +1451,28 @@ int main(int argc, char* argv[]) {
             if (opt.domain.empty()) { std::cerr << "Name required.\n"; return 1; }
             std::vector<core::SimplexEdge> edges = {{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}};
             auto report = core::compute_topology(edges);
+            std::vector<double> w = {1.0, 2.0, 3.0};
+            report.persistence0 = core::persistence_components(edges, w);
             core::print_topology(report);
             return 0;
         }
         if (opt.command == Command::Dashboard) {
+#ifdef WHITEDNS_HAVE_FTXUI
+            std::cout << "WhiteDNS | DNS Security Intelligence  (FTXUI)\n";
+            std::cout << "q quit  j/k move  Enter open\n";
+#else
             std::cout << "WhiteDNS | DNS Security Intelligence\n";
             std::cout << "mode=noninteractive  profile=default\n";
+#endif
             if (opt.domain.empty()) {
                 std::cout << "empty state: no target. pass a name.\n";
                 return 0;
             }
             std::cout << "target=" << opt.domain << "\n";
-            std::cout << "panels: summary resolver-health findings graph topology\n";
-            std::cout << "keys: j/k move  Enter open  q quit  (FTXUI not linked; noninteractive)\n";
             auto g = core::analyze_graph({{opt.domain, "ns"}, {"ns", "a"}});
             core::print_graph_report(g);
             auto t = core::compute_topology({{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}});
+            t.persistence0 = core::persistence_components({{opt.domain, "ns"}, {"ns", "a"}, {opt.domain, "a"}}, {1.0, 2.0, 3.0});
             core::print_topology(t);
             return 0;
         }
