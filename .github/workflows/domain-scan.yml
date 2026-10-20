@@ -19,7 +19,7 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
       - run: chmod +x ci/scan.sh
       - name: audit
@@ -28,7 +28,7 @@ jobs:
           FAIL="${{ github.event.inputs.fail_on || 'never' }}"
           if [ "${{ github.event_name }}" = "pull_request" ]; then FAIL=never; fi
           WHITEDNS_DOMAIN="$DOMAIN" WHITEDNS_FAIL_ON="$FAIL" ci/scan.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: whitedns-audit
@@ -37,7 +37,7 @@ jobs:
             build/metrics.prom
       - name: email on failure
         if: failure()
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v22
         with:
           server_address: ${{ secrets.MAIL_SERVER }}
           server_port: ${{ secrets.MAIL_PORT }}
