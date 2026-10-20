@@ -12,22 +12,38 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
       - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON
-      - run: cmake --build build
+      - run: cmake --build build -j$(nproc)
       - run: ./build/whitedns doctor
       - run: chmod +x ci/scan.sh && WHITEDNS_FAIL_ON=never ci/scan.sh google.com
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: brew install cmake openssl jsoncpp
-      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)"
-      - run: cmake --build build
+      - run: brew install cmake openssl jsoncpp pkg-config
+      - name: Configure
+        run: |
+          export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON \
+            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix openssl)"
+      - run: cmake --build build -j$(sysctl -n hw.ncpu)
       - run: ./build/whitedns doctor
   windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - run: vcpkg install openssl:x64-windows jsoncpp:x64-windows
-      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+      - name: Install dependencies
+        run: |
+          if (-not $env:VCPKG_ROOT) { $env:VCPKG_ROOT = "C:/vcpkg" }
+          & "$env:VCPKG_ROOT/vcpkg.exe" install openssl:x64-windows jsoncpp:x64-windows
+      - name: Configure
+        shell: pwsh
+        run: |
+          if (-not $env:VCPKG_ROOT) { $env:VCPKG_ROOT = "C:/vcpkg" }
+          $toolchain = Join-Path $env:VCPKG_ROOT "scripts/buildsystems/vcpkg.cmake"
+          if (-not (Test-Path $toolchain)) { throw "vcpkg toolchain missing: $toolchain" }
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
       - run: cmake --build build --config Release
       - run: .\build\Release\whitedns.exe doctor
