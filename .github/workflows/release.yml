@@ -23,6 +23,7 @@ jobs:
         with:
           files: build/whitedns
           generate_release_notes: true
+
   macos:
     runs-on: macos-latest
     steps:
@@ -40,25 +41,51 @@ jobs:
         with:
           name: whitedns-macos
           path: build/whitedns
+
   windows:
     runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bincache
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+
+      - name: Resolve vcpkg root
+        shell: pwsh
         run: |
-          if (-not $env:VCPKG_ROOT) { $env:VCPKG_ROOT = "C:/vcpkg" }
+          $root = $env:VCPKG_ROOT
+          if (-not $root -or -not (Test-Path "$root/vcpkg.exe")) { $root = "C:/vcpkg" }
+          if (-not (Test-Path "$root/vcpkg.exe")) { throw "vcpkg.exe not found" }
+          "VCPKG_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-bincache
+          key: vcpkg-bincache-win-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            vcpkg-bincache-win-${{ runner.os }}-
+
+      - name: Install dependencies (vcpkg)
+        shell: pwsh
+        run: |
           & "$env:VCPKG_ROOT/vcpkg.exe" install openssl:x64-windows jsoncpp:x64-windows
+
       - name: Configure
         shell: pwsh
         run: |
-          if (-not $env:VCPKG_ROOT) { $env:VCPKG_ROOT = "C:/vcpkg" }
           $toolchain = Join-Path $env:VCPKG_ROOT "scripts/buildsystems/vcpkg.cmake"
-          if (-not (Test-Path $toolchain)) { throw "vcpkg toolchain missing: $toolchain" }
+          if (-not (Test-Path $toolchain)) { throw "Toolchain missing: $toolchain" }
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON `
             "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
-      - run: cmake --build build --config Release
-      - run: .\build\Release\whitedns.exe doctor
+
+      - name: Build
+        run: cmake --build build --config Release -- /m
+
+      - name: Doctor
+        run: .\build\Release\whitedns.exe doctor
+
       - uses: actions/upload-artifact@v4
         with:
           name: whitedns-windows
