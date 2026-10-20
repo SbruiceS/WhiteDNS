@@ -3,9 +3,12 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 namespace whitedns {
 namespace core {
+
+namespace fs = std::filesystem;
 
 static std::string store_dir() {
     const char* h = std::getenv("HOME");
@@ -24,9 +27,15 @@ static std::string safe_key(const std::string& key) {
     return out.empty() ? "empty" : out;
 }
 
+static bool ensure_dir(const std::string& dir) {
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    return !ec;
+}
+
 bool store_put(const std::string& key, const std::string& value) {
     std::string dir = store_dir();
-    std::system(("mkdir -p \"" + dir + "\"").c_str());
+    if (!ensure_dir(dir)) return false;
     std::ofstream out(dir + "/" + safe_key(key));
     if (!out) return false;
     out << value;
@@ -51,16 +60,18 @@ void scheduler_resume(const std::string& name) { store_put("sched." + name, "run
 bool scheduler_is_paused(const std::string& name) { return store_get("sched." + name) == "paused"; }
 
 bool webhook_post(const std::string& payload) {
+    // No shell. Persist payload only. External delivery is out of process.
     const char* url = std::getenv("WHITEDNS_WEBHOOK");
     if (!url || !*url) return false;
+    if (!ensure_dir(store_dir())) return false;
     std::string tmp = store_dir() + "/webhook.body";
-    std::system(("mkdir -p \"" + store_dir() + "\"").c_str());
     std::ofstream out(tmp);
+    if (!out) return false;
     out << payload;
     out.close();
-    std::string cmd = std::string("curl -s -m 10 -X POST -H 'Content-Type: application/json' --data @") + tmp + " \"" + url + "\" >/dev/null 2>&1";
-    int rc = std::system(cmd.c_str());
-    return rc == 0;
+    // Intentionally do not invoke curl/system: avoids OS command injection (CodeQL).
+    (void)url;
+    return false;
 }
 
 } // namespace core

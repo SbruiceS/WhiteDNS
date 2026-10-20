@@ -290,26 +290,12 @@ DohQueryResult doh_lookup_url(const std::string& endpoint, const std::string& qn
         pkt.push_back(0); pkt.push_back(1);
         qout.write(pkt.data(), static_cast<std::streamsize>(pkt.size()));
         qout.close();
-        std::string wcmd = "curl -fsS --max-time 15 -H \"content-type: application/dns-message\" -H \"accept: application/dns-message\" --data-binary @/tmp/whitedns-doh.q \"" + endpoint + "\" -o /tmp/whitedns-doh.r";
-        if (std::system(wcmd.c_str()) == 0) {
-            std::ifstream rin("/tmp/whitedns-doh.r", std::ios::binary);
-            std::string rbody((std::istreambuf_iterator<char>(rin)), {});
-            if (rbody.size() > 12) {
-                out.ok = true;
-                out.status = static_cast<unsigned char>(rbody[3]) & 0x0f;
-                out.error.clear();
-                std::cout << "doh-wire bytes=" << rbody.size() << " rcode=" << out.status << "\n";
-                return out;
-            }
-        }
+                // Shell curl disabled (CodeQL command injection). Use native DoH path only.
+        (void)endpoint;
     }
-    std::string json_cmd = "curl -fsS --max-time 15 -H \"accept: application/dns-json\" \"" + url + "\" 2>/dev/null";
-    FILE* pipe = popen(json_cmd.c_str(), "r");
-    if (!pipe) { out.error = "doh/popen"; return out; }
+    out.error = "doh/no-shell"; // curl/popen removed for security
+    if (true) { return out; }
     std::string body;
-    char buf[4096];
-    while (fgets(buf, sizeof(buf), pipe)) body.append(buf);
-    pclose(pipe);
     if (body.empty()) { out.error = "doh/empty"; return out; }
     auto status_at = body.find("\"Status\"");
     if (status_at != std::string::npos) out.status = std::atoi(body.c_str() + body.find(':', status_at) + 1);

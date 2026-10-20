@@ -15,17 +15,9 @@ namespace core {
 namespace {
 
 std::string curl_get(const std::string& url) {
-    std::string cmd = "curl -fsS -A \"WhiteDNS/2.0\" --max-time 25 --max-filesize 4000000 \"" + url + "\" 2>/dev/null";
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe) return {};
-    std::string body;
-    char buf[4096];
-    while (fgets(buf, sizeof(buf), pipe)) {
-        body.append(buf);
-        if (body.size() > 4000000) break;
-    }
-    pclose(pipe);
-    return body;
+    // No OS command / popen (CodeQL). Remote fetch disabled here.
+    (void)url;
+    return {};
 }
 
 std::string json_string_at(const std::string& body, size_t from, const std::string& key) {

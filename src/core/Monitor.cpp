@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 #include <map>
 #include <set>
 #include <sstream>
@@ -53,7 +54,7 @@ std::string snapshot(const std::string& qname, const std::vector<std::string>& r
 
 void respond(const std::string& qname, int sample, const std::string& detail) {
     std::string adir = home() + "/.whitedns/alerts";
-    std::system(("mkdir -p \"" + adir + "\"").c_str());
+    std::error_code ec; std::filesystem::create_directories(adir, ec);
     std::ofstream out(adir + "/" + qname + ".alert");
     auto t = std::time(nullptr);
     out << "time=" << t << " sample=" << sample << "\n" << detail << "\n";
@@ -76,7 +77,7 @@ void run_monitor(const std::string& qname, int samples, int interval_s,
     std::cout << "  samples=" << samples << "  interval_s=" << interval_s
               << "  resolvers=" << res.size() << "\n";
     std::string dir = home() + "/.whitedns/monitor";
-    std::system(("mkdir -p \"" + dir + "\"").c_str());
+    std::error_code ec2; std::filesystem::create_directories(dir, ec2);
     std::string prev;
     int alerts = 0;
     for (int i = 1; i <= samples; ++i) {

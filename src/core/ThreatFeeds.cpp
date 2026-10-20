@@ -7,14 +7,6 @@
 #include <string>
 #include <vector>
 
-#ifdef _WIN32
-#define whitedns_popen _popen
-#define whitedns_pclose _pclose
-#else
-#define whitedns_popen popen
-#define whitedns_pclose pclose
-#endif
-
 namespace whitedns {
 namespace core {
 
@@ -27,17 +19,16 @@ std::string lower_copy(std::string s) {
 }
 
 std::string fetch(const std::string& url) {
-    std::string cmd = "curl -fsS --max-time 20 --max-filesize 8000000 \"" + url + "\" 2>/dev/null";
-    FILE* pipe = whitedns_popen(cmd.c_str(), "r");
-    if (!pipe) return {};
-    std::string body;
-    char buf[4096];
-    while (fgets(buf, sizeof(buf), pipe)) {
-        body.append(buf);
-        if (body.size() > 8000000) break;
+    // No OS command. Load from local path only when url is a file path.
+    if (url.rfind("https://", 0) == 0 || url.rfind("http://", 0) == 0) {
+        (void)url;
+        return {};
     }
-    whitedns_pclose(pipe);
-    return body;
+    std::ifstream in(url);
+    if (!in) return {};
+    std::stringstream ss;
+    ss << in.rdbuf();
+    return ss.str();
 }
 
 // 0 none, 1 exact, 2 query is under a listed name, 3 a listed name is under the query

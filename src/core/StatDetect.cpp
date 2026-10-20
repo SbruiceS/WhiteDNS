@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 
@@ -52,7 +53,7 @@ std::vector<double> load_rtts(const std::string& qname) {
 
 void save_rtt(const std::string& qname, double rtt) {
     std::string dir = home() + "/.whitedns/history";
-    std::system(("mkdir -p \"" + dir + "\"").c_str());
+    std::error_code ec; std::filesystem::create_directories(dir, ec);
     std::ofstream out(dir + "/" + qname + ".rtt", std::ios::app);
     out << rtt << "\n";
 }

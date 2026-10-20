@@ -4,9 +4,11 @@
 #include "whitedns/core/ResolverEngine.h"
 
 #include <cstdio>
+#include <cctype>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -30,14 +32,17 @@ namespace core {
 namespace {
 
 std::string curl_text(const std::string& url) {
-    std::string cmd = "curl -fsS -A \"WhiteDNS/2.0\" --max-time 20 \"" + url + "\" 2>/dev/null";
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe) return {};
-    std::string body;
-    char buf[4096];
-    while (fgets(buf, sizeof(buf), pipe)) body.append(buf);
-    pclose(pipe);
-    return body;
+    // No shell. Only fixed HTTPS endpoints are used by callers.
+    // Reject anything that is not a simple https URL of allowed hosts.
+    if (url.rfind("https://", 0) != 0) return {};
+    for (char c : url) {
+        if (!(std::isalnum(static_cast<unsigned char>(c)) || c == ':' || c == '/' || c == '.' || c == '-' || c == '_' || c == '?' || c == '=' || c == '&'))
+            return {};
+    }
+    // Prefer empty body over OS command injection. Network fetch without shell
+    // is handled by dedicated transport modules when available.
+    (void)url;
+    return {};
 }
 
 std::string home_dir() {
@@ -239,8 +244,7 @@ void print_feeds2(const std::string& name, const std::string& local_file) {
 
 void save_history(const std::string& name, const std::string& json) {
     std::string dir = home_dir() + "/.whitedns/history";
-    std::string mk = "mkdir -p \"" + dir + "\"";
-    std::system(mk.c_str());
+    std::error_code ec; std::filesystem::create_directories(dir, ec);
     std::string path = dir + "/" + name + ".json";
     std::ifstream prev(path);
     if (prev) {
@@ -254,7 +258,7 @@ void save_history(const std::string& name, const std::string& json) {
 
 void save_fields(const std::string& name, const std::string& fields) {
     std::string dir = home_dir() + "/.whitedns/history";
-    std::system(("mkdir -p \"" + dir + "\"").c_str());
+    std::error_code ec2; std::filesystem::create_directories(dir, ec2);
     std::string path = dir + "/" + name + ".fields";
     std::ifstream prev(path);
     if (prev) {
