@@ -9,7 +9,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev libjsoncpp-dev
       - run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHITEDNS_RELEASE=ON
       - run: cmake --build build -j$(nproc)
@@ -19,7 +19,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: brew install cmake openssl jsoncpp pkg-config
       - name: Configure
         run: |
@@ -35,7 +35,7 @@ jobs:
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bincache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve vcpkg root
         shell: pwsh
@@ -48,7 +48,7 @@ jobs:
           Write-Host "Using VCPKG_ROOT=$root"
 
       - name: Cache vcpkg binary packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/vcpkg-bincache
           key: vcpkg-bincache-win-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
